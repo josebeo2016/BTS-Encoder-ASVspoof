@@ -1,0 +1,17 @@
+*.log
+**/__pycache__/
+asvspoof2021/LA/Baseline-RawNet2-bio/models/
+asvspoof2021/LA/Baseline-RawNet2-bio/models_tts_vc_train/
+asvspoof2021/LA/Baseline-RawNet2-bio/logs_tts_vc_train/
+asvspoof2021/LA/Baseline-RawNet2-bio/logs/
+asvspoof2021/LA/Baseline-RawNet2-bio/feats/add/
+asvspoof2021/LA/Baseline-RawNet2-bio/feats/eval_2021/
+asvspoof2021/LA/Baseline-RawNet2-bio/feats/for/
+DFAnalysis/
+distillation/
+test_data/
+voxseg/
+*.ipynb
+biosegment/.ipynb_checkpoints/
+*.zip
+*.gz
