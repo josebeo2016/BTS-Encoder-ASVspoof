@@ -168,7 +168,7 @@ def train_epoch(train_loader, model, lr,optim, device):
     ii = 0
     model.train()
 
-    #set objective (Loss) functions
+    #set objective (Loss) functionsl
     weight = torch.FloatTensor([0.1, 0.9]).to(device)
     # set weight for augment dataset
     # weight = torch.FloatTensor([0.03, 0.97]).to(device)
