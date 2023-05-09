@@ -15,3 +15,9 @@ biosegment/.ipynb_checkpoints/
 *.zip
 *.gz
 asvspoof2021/eval-package/keys/
+
+# for distialtion
+distillation/logs
+distillation/models
+distillation/feats
+distillation/test_softmax_logsoftmax_scores.txt
