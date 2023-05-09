@@ -8,7 +8,6 @@ asvspoof2021/LA/Baseline-RawNet2-bio/feats/add/
 asvspoof2021/LA/Baseline-RawNet2-bio/feats/eval_2021/
 asvspoof2021/LA/Baseline-RawNet2-bio/feats/for/
 DFAnalysis/
-distillation/
 test_data/
 voxseg/
 *.ipynb
