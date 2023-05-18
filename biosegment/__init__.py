@@ -1,2 +1,2 @@
 #
-from .predict import wav2bio
+from .GMM.predict import wav2bio

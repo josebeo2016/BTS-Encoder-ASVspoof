@@ -11,7 +11,7 @@ asvspoof2021/LA/Baseline-RawNet2-bio/feats/for/
 DFAnalysis/
 test_data/
 voxseg/
-*.ipynb
+
 biosegment/.ipynb_checkpoints/
 *.zip
 *.gz
