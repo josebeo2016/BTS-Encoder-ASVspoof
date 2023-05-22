@@ -7,14 +7,14 @@ import soundfile as sf
 import os
 
 
-BASE_DIR=os.getcwd()
+BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 # if __name__ == '__main__':
     
     # Load model
 models = {}
 for cls in ["breath", "silence", "speech"]:
-    fp = open(BASE_DIR+"/biosegment/out/{}.gmm".format(cls), "rb")
+    fp = open(BASE_DIR+"/out/{}.gmm".format(cls), "rb")
     models[cls]=pickle.load(fp)
     fp.close()
 biotype = {

@@ -9,13 +9,13 @@ from collections import OrderedDict
 from torch.nn.parameter import Parameter
 import math
 
-# from . import transformer
-import transformer
-# from . import cnns2s
-import cnns2s
+from . import transformer
+# import transformer
+from . import cnns2s
+# import cnns2s
 
-# from . import commons
-import commons
+from . import commons
+# import commons
 
 ___author__ = "Hemlata Tak"
 __email__ = "tak@eurecom.fr"
