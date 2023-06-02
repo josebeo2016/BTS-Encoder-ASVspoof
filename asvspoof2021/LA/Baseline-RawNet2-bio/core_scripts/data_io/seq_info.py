@@ -64,7 +64,7 @@ class SeqInfo():
             self.start_pos = dic["start_pos"]
             self.info_id = dic["info_id"]
         except KeyError:
-            nii_warn.f_die("Seq infor %s invalid" % str(dic))
+            print("Seq infor %s invalid" % str(dic))
 
     def print_to_str(self):
         """
@@ -89,7 +89,7 @@ class SeqInfo():
             self.length = int(temp[3])
             self.start_pos = int(temp[4])
         except ValueError:
-            nii_warn.f_die("Seq infor cannot parse {}".format(input_str))
+            print("Seq infor cannot parse {}".format(input_str))
         return
     
     def seq_length(self):
