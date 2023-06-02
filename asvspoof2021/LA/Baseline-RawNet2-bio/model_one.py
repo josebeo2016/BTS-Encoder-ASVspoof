@@ -8,7 +8,7 @@ from torch.utils import data
 from collections import OrderedDict
 from torch.nn.parameter import Parameter
 import math
-from .biosegment import wav2bio
+from . import biosegment
 
 from . import transformer
 # import transformer
@@ -590,7 +590,7 @@ class RawNet(nn.Module):
         self.logsoftmax = nn.LogSoftmax(dim=1)
     
     def get_Bio(self, X_pad, fs):
-        bio = wav2bio(X_pad, fs)
+        bio = biosegment.wav2bio(X_pad, fs)
         # bio_length = len(bio)
         bio_inp = torch.IntTensor(bio)
         bio_length = torch.IntTensor([len(bio)])
