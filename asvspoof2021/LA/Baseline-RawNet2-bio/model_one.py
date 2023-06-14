@@ -590,7 +590,8 @@ class RawNet(nn.Module):
         self.logsoftmax = nn.LogSoftmax(dim=1)
     
     def get_Bio(self, X_pad, fs):
-        bio = biosegment.wav2bio(X_pad, fs)
+        # bio = biosegment.GMM_wav2bio(X_pad, fs)
+        bio = biosegment.CNN_wav2bio(X_pad, fs)
         # bio_length = len(bio)
         bio_inp = torch.IntTensor(bio)
         bio_length = torch.IntTensor([len(bio)])
