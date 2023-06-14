@@ -517,11 +517,15 @@ class RawNet_new(nn.Module):
             print_fn(line_new)
 
 # your task
+def get_Bio(X_pad, fs):
+    bio = biosegment.wav2bio(X_pad, fs)
+    bio_inp = torch.IntTensor(bio)
+    bio_length = torch.IntTensor([len(bio)])
+    return bio_inp, bio_length
+
 class RawNet(nn.Module):
     def __init__(self, d_args, device):
         super(RawNet, self).__init__()
-
-        
         self.device=device
 
         self.Sinc_conv=SincConv(device=self.device,
@@ -583,27 +587,15 @@ class RawNet(nn.Module):
         # self.fc2_gru = nn.Linear(in_features = d_args['nb_fc_node'],
 		# 	out_features = d_args['nb_classes'],bias=True)
 
-        
-			
-       
         self.sig = nn.Sigmoid()
         self.logsoftmax = nn.LogSoftmax(dim=1)
     
-    def get_Bio(self, X_pad, fs):
-        # bio = biosegment.GMM_wav2bio(X_pad, fs)
-        bio = biosegment.CNN_wav2bio(X_pad, fs)
-        # bio_length = len(bio)
-        bio_inp = torch.IntTensor(bio)
-        bio_length = torch.IntTensor([len(bio)])
-        return bio_inp, bio_length
-    
     def forward(self, x, y = None):
         X_pad = x.squeeze(0).detach().cpu().numpy()
-        bio, bio_lengths = self.get_Bio(X_pad, 16000)
+        bio, bio_lengths = get_Bio(X_pad, 16000)
         bio = bio.unsqueeze(0).to(self.device)
         bio_lengths = bio_lengths.to(self.device)
 
-        
         nb_samp = x.shape[0]
         len_seq = x.shape[1]
         x=x.view(nb_samp,1,len_seq)
