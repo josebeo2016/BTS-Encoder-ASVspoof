@@ -8,15 +8,15 @@ from torch.utils import data
 from collections import OrderedDict
 from torch.nn.parameter import Parameter
 import math
-from . import biosegment
 
-from . import transformer
-# import transformer
-from . import cnns2s
-# import cnns2s
-
-from . import commons
-# import commons
+# from . import biosegment
+# from . import transformer
+# from . import commons
+# from . import cnns2s
+import cnns2s
+import transformer
+import biosegment
+import commons
 
 ___author__ = "Hemlata Tak"
 __email__ = "tak@eurecom.fr"
