@@ -1,0 +1,34 @@
+optimizer: Adam 
+amsgrad: 1   #for adam optim
+
+
+
+#model-related
+model:
+  nb_samp: 64600
+  first_conv: 1024   # no. of filter coefficients 
+  in_channels: 1
+  filts: [20, [20, 20], [20, 128], [128, 128]] # no. of filters channel in residual blocks
+  blocks: [2, 4]
+  nb_fc_node: 1024
+  gru_node: 1024
+  nb_gru_layer: 3
+  nb_classes: 2
+  # Biological conditioning
+  n_bios: 3
+  bio_dim: 32
+  # bioEncoderRNN
+  bio_rnn: 64
+  bio_out: 64
+  # bioEncoderCONV
+  bio_hid: 256
+  n_heads: 4
+  pf_dim: 128
+  n_layers: 3
+
+
+  
+  
+
+
+
