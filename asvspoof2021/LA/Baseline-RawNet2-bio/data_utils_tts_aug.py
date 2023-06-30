@@ -129,7 +129,7 @@ class Dataset_for_eval(Dataset):
         return x_inp, bio_inp, bio_length, key
     def get_Bio(self, filename, X_pad, fs):
         
-        feat_name = "./feats/aug/" + filename
+        feat_name = "./feats/add/" + filename
 
         if os.path.exists(feat_name):
             bio_inp = torch.load(feat_name)
@@ -139,8 +139,5 @@ class Dataset_for_eval(Dataset):
             bio = wav2bio(X_pad, fs)
             bio_length = len(bio)
             bio_inp = torch.IntTensor(bio)
-            dir_name = os.path.dirname(feat_name)
-            if not os.path.exists(dir_name):
-                os.makedirs(dir_name)
             torch.save(bio_inp, feat_name)
         return bio_inp, bio_length

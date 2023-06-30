@@ -340,7 +340,7 @@ if __name__ == '__main__':
 
     # define train dataloader
 
-    d_label_trn,file_train = genSpoof_list( dir_meta = os.path.join(args.train_path,'protocol.txt'),is_train=True,is_eval=False)
+    d_label_trn,file_train = genSpoof_list( dir_meta = os.path.join(args.train_path,'protocol_tts.txt'),is_train=True,is_eval=False)
     print('no. of training trials',len(file_train))
     
     train_set=Dataset_for(list_IDs = file_train,labels = d_label_trn,base_dir = os.path.join(args.train_path))
@@ -351,7 +351,7 @@ if __name__ == '__main__':
 
     # define validation dataloader
 
-    d_label_dev,file_dev = genSpoof_list( dir_meta =  os.path.join(args.train_path,'protocol.txt'),is_train=False,is_eval=False, is_dev=True)
+    d_label_dev,file_dev = genSpoof_list( dir_meta =  os.path.join(args.train_path,'protocol_tts.txt'),is_train=False,is_eval=False, is_dev=True)
     print('no. of validation trials',len(file_dev))
 
     dev_set = Dataset_for(list_IDs = file_dev,
