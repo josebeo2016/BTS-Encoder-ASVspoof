@@ -588,6 +588,7 @@ class RawNet(nn.Module):
 			
        
         self.sig = nn.Sigmoid()
+        self.dropout = nn.Dropout(p=0.25)
         self.logsoftmax = nn.LogSoftmax(dim=1)
         
     def forward(self, x, bio = None, bio_lengths = None, y = None):
@@ -620,6 +621,8 @@ class RawNet(nn.Module):
         y2 = self.sig(y2).view(y2.size(0), y2.size(1), -1)  # torch.Size([batch, filter, 1])
         x = x2 * y2 + y2 # (batch, filter, time) x (batch, filter, 1)
 
+        # x=self.dropout(x)
+        
         x3 = self.block3(x)
         y3 = self.avgpool(x3).view(x3.size(0), -1) # torch.Size([batch, filter])
         y3 = self.fc_attention3(y3)
@@ -637,6 +640,8 @@ class RawNet(nn.Module):
         y5 = self.fc_attention5(y5)
         y5 = self.sig(y5).view(y5.size(0), y5.size(1), -1)  # torch.Size([batch, filter, 1])
         x = x5 * y5 + y5 # (batch, filter, time) x (batch, filter, 1)
+        
+        # x=self.dropout(x)
 
         x = self.bn_before_gru(x)
         x = self.selu(x)
@@ -645,6 +650,8 @@ class RawNet(nn.Module):
         x, _ = self.gru(x)
         x = x[:,-1,:]
         x = self.fc1_gru(x)
+        
+        # x=self.dropout(x)
         
         #PHUCDT
         if (bio is not None):
