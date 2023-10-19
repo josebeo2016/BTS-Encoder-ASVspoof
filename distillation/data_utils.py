@@ -88,57 +88,55 @@ def pad(x, max_len=64600):
 			
 
 class Dataset_ASVspoof2019_train(Dataset):
-	def __init__(self, list_IDs, labels, base_dir):
-            '''self.list_IDs	: list of strings (each string: utt key),
-               self.labels      : dictionary (key: utt key, value: label integer)'''
-               
-            self.list_IDs = list_IDs
-            self.labels = labels
-            self.base_dir = base_dir
-            self.teacher_res_dir = "/root/biological/AdvAttacksASVspoof/model/breathing_result/"
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            self.teacher = bio(device)
-
-	def __len__(self):
-           return len(self.list_IDs)
-
-
-	def __getitem__(self, index):
-            self.cut=64600 # take ~4 sec audio (64600 samples)
-            key = self.list_IDs[index]
-            X,fs = librosa.load(self.base_dir+'flac/'+key+'.flac', sr=16000) 
-            X_pad= pad(X,self.cut)
-            x_inp= Tensor(X_pad)
-            y = self.labels[key]
+    def __init__(self, list_IDs, labels, base_dir):
+        '''self.list_IDs	: list of strings (each string: utt key),
+            self.labels      : dictionary (key: utt key, value: label integer)'''
             
-            # load teacher score
-            out_file = self.teacher_res_dir + key + ".flac"
-            logit, emb = self.teacher.get_output(out_file)
-            
-            return x_inp, y, logit, emb
+        self.list_IDs = list_IDs
+        self.labels = labels
+        self.base_dir = base_dir
+        self.teacher_res_dir = "/root/biological/AdvAttacksASVspoof/model/breathing_result/"
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.teacher = bio(device)
+    def __len__(self):
+        return len(self.list_IDs)
+
+    def __getitem__(self, index):
+        self.cut=64600 # take ~4 sec audio (64600 samples)
+        key = self.list_IDs[index]
+        X,fs = librosa.load(self.base_dir+'flac/'+key+'.flac', sr=16000) 
+        X_pad= pad(X,self.cut)
+        x_inp= Tensor(X_pad)
+        y = self.labels[key]
+        
+        # load teacher score
+        out_file = self.teacher_res_dir + key
+        logit, emb = self.teacher.get_output(out_file)
+        
+        return x_inp, y, logit, emb
             
             
 class Dataset_ASVspoof2021_eval(Dataset):
-	def __init__(self, list_IDs, base_dir):
-            '''self.list_IDs	: list of strings (each string: utt key),
-               '''
-               
-            self.list_IDs = list_IDs
-            self.base_dir = base_dir
+    def __init__(self, list_IDs, base_dir):
+        '''self.list_IDs	: list of strings (each string: utt key),
+            '''
             
+        self.list_IDs = list_IDs
+        self.base_dir = base_dir
+        
 
-	def __len__(self):
-            return len(self.list_IDs)
+    def __len__(self):
+        return len(self.list_IDs)
 
 
-	def __getitem__(self, index):
-            self.cut=64600 # take ~4 sec audio (64600 samples)
-            key = self.list_IDs[index]
-            X, fs = librosa.load(self.base_dir+'flac/'+key+'.flac', sr=16000)
-            X_pad = pad(X,self.cut)
-            x_inp = Tensor(X_pad)
-            return x_inp,key           
-           
+    def __getitem__(self, index):
+        self.cut=64600 # take ~4 sec audio (64600 samples)
+        key = self.list_IDs[index]
+        X, fs = librosa.load(self.base_dir+'flac/'+key+'.flac', sr=16000)
+        X_pad = pad(X,self.cut)
+        x_inp = Tensor(X_pad)
+        return x_inp,key           
+        
             
 class Dataset_ASVspoof2019_eval(Dataset):
     def __init__(self, list_IDs, base_dir):

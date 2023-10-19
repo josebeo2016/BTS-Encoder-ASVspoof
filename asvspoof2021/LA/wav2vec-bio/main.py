@@ -18,6 +18,29 @@ __author__ = "Hemlata Tak"
 __email__ = "tak@eurecom.fr"
 __credits__ = ["Jose Patino", "Massimiliano Todisco", "Jee-weon Jung"]
 
+class EarlyStop:
+    def __init__(self, patience=5, delta=0, init_best=60, save_dir=''):
+        self.patience = patience
+        self.delta = delta
+        self.best_score = init_best
+        self.counter = 0
+        self.early_stop = False
+        self.save_dir = save_dir
+
+    def __call__(self, score, model, epoch):
+        if self.best_score is None:
+            self.best_score = score
+        elif score < self.best_score + self.delta:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            print("Best epoch: {}".format(epoch))
+            self.best_score = score
+            self.counter = 0
+            # save model here
+            torch.save(model.state_dict(), os.path.join(
+                self.save_dir, 'epoch_{}.pth'.format(epoch)))
 
 def evaluate_accuracy(dev_loader, model, device):
     num_correct = 0.0
@@ -43,7 +66,7 @@ def produce_bio_extract_file_2019(
     device,
     save_path):
     """Perform evaluation and save the score to a file"""
-    data_loader = DataLoader(dataset, batch_size=128, shuffle=False, drop_last=False)
+    data_loader = DataLoader(dataset, batch_size=8, shuffle=False, drop_last=False)
     model.eval()
     
     for batch_x, batch_bio, bio_lengths, keys in data_loader:
@@ -54,49 +77,36 @@ def produce_bio_extract_file_2019(
         bio_lengths = bio_lengths.to(device)
         batch_bio = batch_bio.to(device)
         _, batch_bio_out = model(batch_x, batch_bio, bio_lengths)
-
-                       
-        # add outputs
-        # fname_list.extend(keys)
-        # score_list.extend(batch_score.tolist())
-        
+       
 
         for fn, sco in zip(keys, batch_bio_out.tolist()):
             _, utt_id, _, src, key = fn.strip().split(' ')
             torch.save(sco, save_path + "/" + utt_id)
             # assert fn == utt_id
             
-
-    # assert len(trial_lines) == len(fname_list) == len(score_list)
-    # with open(save_path, "w") as fh:
-    #     for fn, sco, trl in zip(fname_list, score_list, trial_lines):
-    #         _, utt_id, _, src, key = trl.strip().split(' ')
-    #         assert fn == utt_id
-    #         fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
     print("bio saved to {}".format(save_path))
 
 def produce_evaluation_file_2019(
     dataset,
     model,
     device,
+    batch_size,
     save_path):
     """Perform evaluation and save the score to a file"""
-    data_loader = DataLoader(dataset, batch_size=32, shuffle=False, drop_last=False)
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
     model.eval()
     
     for batch_x, batch_bio, bio_lengths, keys in data_loader:
         # fname_list = []
         # score_list = []  
-        batch_size = batch_x.size(0)
+        # batch_size = batch_x.size(0)
         batch_x = batch_x.to(device)
         bio_lengths = bio_lengths.to(device)
         batch_bio = batch_bio.to(device)
         batch_out, _ = model(batch_x, batch_bio, bio_lengths)
         batch_score = (batch_out[:, 1]
                        ).data.cpu().numpy().ravel()
-        # add outputs
-        # fname_list.extend(keys)
-        # score_list.extend(batch_score.tolist())
+
         
         with open(save_path, "a+") as fh:
             for fn, sco in zip(keys, batch_score.tolist()):
@@ -104,12 +114,7 @@ def produce_evaluation_file_2019(
                 # assert fn == utt_id
                 fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
         fh.close()
-    # assert len(trial_lines) == len(fname_list) == len(score_list)
-    # with open(save_path, "w") as fh:
-    #     for fn, sco, trl in zip(fname_list, score_list, trial_lines):
-    #         _, utt_id, _, src, key = trl.strip().split(' ')
-    #         assert fn == utt_id
-    #         fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
+
     print("Scores saved to {}".format(save_path))
 
 def produce_evaluation_file(dataset, model, device, save_path, batch_size):
@@ -317,7 +322,7 @@ if __name__ == '__main__':
         file_eval = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.eval.trl.txt'.format(prefix,prefix_2019)),is_train=False,is_eval=True)
         print('no. of eval trials',len(file_eval))
         eval_set=Dataset_ASVspoof2019_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path+'ASVspoof2019_{}_eval/'.format(args.track)))
-        produce_evaluation_file_2019(eval_set, model, device, args.eval_output)
+        produce_evaluation_file_2019(eval_set, model, device, args.batch_size, args.eval_output)
         sys.exit(0)
     
 
@@ -348,6 +353,7 @@ if __name__ == '__main__':
     num_epochs = args.num_epochs
     writer = SummaryWriter('logs/{}'.format(model_tag))
     best_acc = 99
+    early_stopping = EarlyStop(patience=10, delta=0, init_best=99, save_dir=model_save_path)
     for epoch in range(num_epochs):
         running_loss, train_accuracy = train_epoch(train_loader,model, args.lr,optimizer, device)
         valid_accuracy = evaluate_accuracy(dev_loader, model, device)
@@ -357,7 +363,13 @@ if __name__ == '__main__':
         print('\n{} - {} - {:.2f} - {:.2f}'.format(epoch,
                                                    running_loss, train_accuracy, valid_accuracy))
         
-        if valid_accuracy > best_acc:
-            print('best model find at epoch', epoch)
-        best_acc = max(valid_accuracy, best_acc)
-        torch.save(model.state_dict(), os.path.join(model_save_path, 'epoch_{}.pth'.format(epoch)))
+        
+        early_stopping(valid_accuracy, model, epoch)
+        if early_stopping.early_stop:
+            print("Early stopping activated.")
+            
+            break
+        # if valid_accuracy > best_acc:
+        #     print('best model find at epoch', epoch)
+        # best_acc = max(valid_accuracy, best_acc)
+        # torch.save(model.state_dict(), os.path.join(model_save_path, 'epoch_{}.pth'.format(epoch)))

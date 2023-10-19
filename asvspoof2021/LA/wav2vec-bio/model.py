@@ -287,9 +287,9 @@ class Model(nn.Module):
         
     def forward(self, x, bio = None, bio_lengths = None, y = None):
 
-        _,x = self.backend(x)
+        out ,x = self.backend(x)
         
-        #PHUCDT
+        # #PHUCDT
         if (bio is not None):
             bio_scoring = self.bioScoring(bio, bio_lengths)
             if (self.is_add):
@@ -303,3 +303,4 @@ class Model(nn.Module):
         
         output=self.logsoftmax(x)
         return output, b
+        # return out, x
