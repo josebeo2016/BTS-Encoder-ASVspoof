@@ -143,6 +143,7 @@ def produce_prediction_file(dataset, model, device, save_path, batch_size):
     for batch_x, batch_bio, bio_lengths, utt_id in data_loader:
         fname_list = []
         score_list = []  
+        prob_list = []
         batch_size = batch_x.size(0)
         batch_x = batch_x.to(device)
         bio_lengths = bio_lengths.to(device)
@@ -153,11 +154,13 @@ def produce_prediction_file(dataset, model, device, save_path, batch_size):
                        ).data.cpu().numpy().ravel()
         # add outputs
         fname_list.extend(utt_id)
-        score_list.extend(batch_pred.tolist())
-        
+        score_list.extend(batch_score.tolist())
+        # calculate probability
+        batch_prob = nn.Softmax(dim=1)(batch_out)
+        prob_list.extend(batch_prob.tolist())
         with open(save_path, 'a+') as fh:
-            for f, cm in zip(fname_list,score_list):
-                fh.write('{} {}\n'.format(f, cm))
+            for f, cm, prob in zip(fname_list,score_list, prob_list):
+                fh.write('{} {} {}\n'.format(f, cm, prob[1]))
         fh.close()   
     print('Scores saved to {}'.format(save_path))
 
@@ -185,6 +188,7 @@ def train_epoch(train_loader, model, lr,optim, device):
         bio_lengths = bio_lengths.to(device)
         
         batch_y = batch_y.view(-1).type(torch.int64).to(device)
+        print("Batch_y shape",batch_x.shape)
         batch_out, _ = model(batch_x,batch_bio, bio_lengths)
         batch_loss = criterion(batch_out, batch_y)
         _, batch_pred = batch_out.max(dim=1)
@@ -204,23 +208,18 @@ def train_epoch(train_loader, model, lr,optim, device):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='ASVspoof2021 baseline system')
     # Dataset
-    parser.add_argument('--train_path', type=str, default='/dataa/Dataset/ASVspoof/LA/', help='train set')
-    # parser.add_argument('--dev_path', type=str, default='/dataa/Dataset/ASVspoof/LA/', help='dev set')
-    parser.add_argument('--database_path', type=str, default='/dataa/Dataset/ASVspoof/LA/', help='eval set')
+
+    parser.add_argument('--database_path', type=str, default='/dataa/Dataset/ASVspoof/LA/', help='path to database')
     '''
     % database_path/
     %   |- protocol.txt
     %   |- audio path
+    
+    Protocol has 3 columns: filename, subset, label
+    LA_T_1000001.wav train bonafide
+    LA_D_1000002.wav dev spoof
     '''
 
-    parser.add_argument('--protocols_path', type=str, default='/dataa/Dataset/ASVspoof/LA/', help='Change with path to user\'s LA database protocols directory address')
-    '''
-    % protocols_path/
-    %   |- ASVspoof_LA_cm_protocols
-    %      |- ASVspoof2021.LA.cm.eval.trl.txt
-    %      |- ASVspoof2019.LA.cm.dev.trl.txt 
-    %      |- ASVspoof2019.LA.cm.train.trn.txt 
-    '''
 
     # Hyperparameters
     parser.add_argument('--batch_size', type=int, default=32)
@@ -327,7 +326,7 @@ if __name__ == '__main__':
     
     #evaluation 
     if args.eval_2021:
-        file_eval = genSpoof_list( dir_meta =  os.path.join(args.database_path,'protocol_test.txt'),is_train=False,is_eval=True)
+        file_eval = genSpoof_list( dir_meta =  os.path.join(args.database_path,'protocol.txt'),is_train=False,is_eval=True)
         print('no. of eval trials',len(file_eval))
         eval_set=Dataset_for_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path))
         if (args.predict):
@@ -340,10 +339,10 @@ if __name__ == '__main__':
 
     # define train dataloader
 
-    d_label_trn,file_train = genSpoof_list( dir_meta = os.path.join(args.train_path,'protocol.txt'),is_train=True,is_eval=False)
+    d_label_trn,file_train = genSpoof_list( dir_meta = os.path.join(args.database_path,'protocol.txt'),is_train=True,is_eval=False)
     print('no. of training trials',len(file_train))
     
-    train_set=Dataset_for(list_IDs = file_train,labels = d_label_trn,base_dir = os.path.join(args.train_path))
+    train_set=Dataset_for(list_IDs = file_train,labels = d_label_trn,base_dir = os.path.join(args.database_path))
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True,drop_last = True)
     
     del train_set,d_label_trn
@@ -351,12 +350,12 @@ if __name__ == '__main__':
 
     # define validation dataloader
 
-    d_label_dev,file_dev = genSpoof_list( dir_meta =  os.path.join(args.train_path,'protocol.txt'),is_train=False,is_eval=False, is_dev=True)
+    d_label_dev,file_dev = genSpoof_list( dir_meta =  os.path.join(args.database_path,'protocol.txt'),is_train=False,is_eval=False, is_dev=True)
     print('no. of validation trials',len(file_dev))
 
     dev_set = Dataset_for(list_IDs = file_dev,
 		labels = d_label_dev,
-		base_dir = os.path.join(args.train_path))
+		base_dir = os.path.join(args.database_path))
     dev_loader = DataLoader(dev_set, batch_size=args.batch_size, shuffle=False)
     del dev_set,d_label_dev
 

@@ -1,3 +1,7 @@
 [submodule "asvspoof2021/LA/Baseline-RawNet2-bio/biosegment"]
 	path = asvspoof2021/LA/Baseline-RawNet2-bio/biosegment
 	url = https://github.com/josebeo2016/biosegment.git
+
+[submodule "asvspoof2021/LA/bio_variable/biosegment"]
+	path = asvspoof2021/LA/bio_variable/biosegment
+	url = https://github.com/josebeo2016/biosegment.git

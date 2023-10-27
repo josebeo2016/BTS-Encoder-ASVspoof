@@ -1,0 +1,38 @@
+
+CM SYSTEM
+	EER		= 2.108522612 % (Equal error rate for countermeasure)
+
+TANDEM
+
+BREAKDOWN CM SYSTEM
+	EER A07		= 0.057702636 % (Equal error rate for A07
+	EER A08		= 0.057690218 % (Equal error rate for A08
+	EER A09		= 0.057690218 % (Equal error rate for A09
+	EER A10		= 0.261341847 % (Equal error rate for A10
+	EER A11		= 0.145948995 % (Equal error rate for A11
+	EER A12		= 0.064490827 % (Equal error rate for A12
+	EER A13		= 0.057665411 % (Equal error rate for A13
+	EER A14		= 0.064484619 % (Equal error rate for A14
+	EER A15		= 0.064484619 % (Equal error rate for A15
+	EER A16		= 0.064472210 % (Equal error rate for A16
+	EER A17		= 1.506516906 % (Equal error rate for A17
+	EER A18		= 5.473551538 % (Equal error rate for A18
+	EER A19		= 9.012217645 % (Equal error rate for A19
+
+==============
+min-tDCF		= 0.043329001
+
+BREAKDOWN tDCF SYSTEM
+	min tCDF A07		= 0.130775668 % (Min tDCF for A07
+	min tCDF A08		= 0.130775668 % (Min tDCF for A08
+	min tCDF A09		= 0.130775668 % (Min tDCF for A09
+	min tCDF A10		= 0.651770705 % (Min tDCF for A10
+	min tCDF A11		= 0.502054248 % (Min tDCF for A11
+	min tCDF A12		= 0.183815466 % (Min tDCF for A12
+	min tCDF A13		= 0.163469586 % (Min tDCF for A13
+	min tCDF A14		= 0.163469586 % (Min tDCF for A14
+	min tCDF A15		= 0.163469586 % (Min tDCF for A15
+	min tCDF A16		= 0.204136523 % (Min tDCF for A16
+	min tCDF A17		= 3.810755282 % (Min tDCF for A17
+	min tCDF A18		= 14.210197751 % (Min tDCF for A18
+	min tCDF A19		= 20.934548221 % (Min tDCF for A19

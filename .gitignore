@@ -10,6 +10,7 @@ asvspoof2021/LA/Baseline-RawNet2-bio/feats/aug/
 asvspoof2021/LA/Baseline-RawNet2-bio/feats/eval_2021/
 asvspoof2021/LA/Baseline-RawNet2-bio/feats/for/
 asvspoof2021/LA/Baseline-RawNet2-bio/docs
+asvspoof2021/LA/bio_variable/feats/
 DFAnalysis/
 test_data/
 voxseg/
@@ -24,3 +25,9 @@ distillation/logs
 distillation/models
 distillation/feats
 distillation/test_softmax_logsoftmax_scores.txt
+
+**/logs/
+**/models/
+
+**/feats/*
+distillation/wav2vec_bio_emb/

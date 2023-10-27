@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 
-
+# python asvspoof2021/eval-package/eval_2019.py docs/bio_tts_only_train_res/bio_trans_32concat_69_2019.txt patt_to_ASVspoof2019.LA.asv.eval.gi.trl.scores.txt tmp.txt
 def calculate_tDCF_EER(cm_scores_file,
                        asv_score_file,
                        output_file,
@@ -371,6 +371,8 @@ def compute_tDCF(bonafide_score_cm, spoof_score_cm, Pfa_asv, Pmiss_asv,
 if __name__ == "__main__":
     
     args = sys.argv[1:]
+    if (len (args) != 3):
+        print("python asvspoof2021/eval-package/eval_2019.py docs/bio_tts_only_train_res/bio_trans_32concat_69_2019.txt /dataa/Dataset/ASVspoof/LA/ASVspoof2019_LA_asv_scores/ASVspoof2019.LA.asv.eval.gi.trl.scores.txt tmp.txt")
     calculate_tDCF_EER(args[0], args[1], args[2])
     # ====
     # parse argument
