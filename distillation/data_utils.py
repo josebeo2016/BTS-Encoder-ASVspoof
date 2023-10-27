@@ -5,7 +5,6 @@ import torch.nn as nn
 from torch import Tensor
 import librosa
 from torch.utils.data import Dataset
-from AdvModel import bio
 
 
 ___author__ = "Hemlata Tak"
@@ -44,6 +43,19 @@ def genSpoof_list(dir_meta, is_train=False, is_eval=False, tts_only=True):
             d_meta[key] = 1 if label == 'bonafide' else 0
         return d_meta, file_list
 """
+
+class bio_emb(nn.Module):
+    def __init__(self, device):
+        super(bio_emb, self).__init__()
+        self.device = device
+    
+    def get_output(self, out_file):
+        # load teacher score
+        emb = torch.load(out_file)
+        # emb is an array (list). we need to convert it to tensor
+        emb = torch.tensor(emb, dtype=torch.float32, device=self.device)
+        return emb
+
 def genSpoof_list(dir_meta, is_train=False, is_eval=False, tts_only=False):
     
     d_meta = {}
@@ -95,9 +107,9 @@ class Dataset_ASVspoof2019_train(Dataset):
         self.list_IDs = list_IDs
         self.labels = labels
         self.base_dir = base_dir
-        self.teacher_res_dir = "/root/biological/AdvAttacksASVspoof/model/breathing_result/"
+        self.teacher_res_dir = "/dataa/phucdt/bio/distillation/wav2vec_bio_emb/"
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.teacher = bio(device)
+        self.teacher = bio_emb(device)
     def __len__(self):
         return len(self.list_IDs)
 
@@ -111,9 +123,9 @@ class Dataset_ASVspoof2019_train(Dataset):
         
         # load teacher score
         out_file = self.teacher_res_dir + key
-        logit, emb = self.teacher.get_output(out_file)
+        emb = self.teacher.get_output(out_file)
         
-        return x_inp, y, logit, emb
+        return x_inp, y, emb
             
             
 class Dataset_ASVspoof2021_eval(Dataset):

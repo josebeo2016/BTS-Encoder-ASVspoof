@@ -23,7 +23,7 @@ def evaluate_accuracy(dev_loader, model, device):
     num_correct = 0.0
     num_total = 0.0
     model.eval()
-    for batch_x, batch_y, _, _  in dev_loader:
+    for batch_x, batch_y, _  in dev_loader:
         
         batch_size = batch_x.size(0)
         num_total += batch_size
@@ -103,7 +103,7 @@ def train_epoch(train_loader, model, lr, optim, device, is_dis = False):
     weight = torch.FloatTensor([0.1, 0.9]).to(device)
     criterion = nn.CrossEntropyLoss(weight=weight)
     kdloss = KDloss()
-    for batch_x, batch_y, _, batch_teacher_emb in train_loader:
+    for batch_x, batch_y, batch_teacher_emb in train_loader:
        
         batch_size = batch_x.size(0)
         num_total += batch_size
@@ -135,7 +135,7 @@ def train_epoch(train_loader, model, lr, optim, device, is_dis = False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='ASVspoof2021 baseline system')
     # Dataset
-    parser.add_argument('--database_path', type=str, default='/root/dataset/Dataset/ASVspoof/LA/', help='Change this to user\'s full directory address of LA database (ASVspoof2019- for training & development (used as validation), ASVspoof2021 for evaluation scores). We assume that all three ASVspoof 2019 LA train, LA dev and ASVspoof2021 LA eval data folders are in the same database_path directory.')
+    parser.add_argument('--database_path', type=str, default='/datab/Dataset/ASVspoof/LA/', help='Change this to user\'s full directory address of LA database (ASVspoof2019- for training & development (used as validation), ASVspoof2021 for evaluation scores). We assume that all three ASVspoof 2019 LA train, LA dev and ASVspoof2021 LA eval data folders are in the same database_path directory.')
     '''
     % database_path/
     %   |- LA
@@ -144,7 +144,7 @@ if __name__ == '__main__':
     %      |- ASVspoof2019_LA_dev/flac
     '''
 
-    parser.add_argument('--protocols_path', type=str, default='/root/dataset/Dataset/ASVspoof/LA/', help='Change with path to user\'s LA database protocols directory address')
+    parser.add_argument('--protocols_path', type=str, default='/datab/Dataset/ASVspoof/LA/', help='Change with path to user\'s LA database protocols directory address')
     '''
     % protocols_path/
     %   |- ASVspoof_LA_cm_protocols
@@ -168,6 +168,8 @@ if __name__ == '__main__':
     parser.add_argument('--comment', type=str, default=None,
                         help='Comment to describe the saved model')
     # Auxiliary arguments
+    parser.add_argument('--config', type=str, default=None,
+                        help='Path to config yaml file')
     parser.add_argument('--track', type=str, default='LA',choices=['LA', 'PA','DF'], help='LA/PA/DF')
     parser.add_argument('--eval_output', type=str, default=None,
                         help='Path to save the evaluation result')
@@ -195,15 +197,16 @@ if __name__ == '__main__':
     
     
 
-    dir_yaml = os.path.splitext('model_config_RawNet')[0] + '.yaml'
-
-    with open(dir_yaml, 'r') as f_yaml:
-            parser1 = yaml.load(f_yaml)
-
     if not os.path.exists('models'):
         os.mkdir('models')
     args = parser.parse_args()
- 
+    
+    # dir_yaml = os.path.splitext('model_config_RawNet')[0] + '.yaml'
+    dir_yaml = args.config
+
+    with open(dir_yaml, 'r') as f_yaml:
+            parser1 = yaml.safe_load(f_yaml)
+            
     #make experiment reproducible
     set_random_seed(args.seed, args)
     
