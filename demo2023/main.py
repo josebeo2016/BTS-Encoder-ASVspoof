@@ -121,7 +121,7 @@ def produce_evaluation_file(dataset, model, device, save_path, batch_size):
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
     model.eval()
     
-    for batch_x, batch_bio, bio_lengths, utt_id in data_loader:
+    for batch_x, batch_bio, bio_lengths, utt_id in tqdm(data_loader):
         fname_list = []
         score_list = []  
         batch_size = batch_x.size(0)

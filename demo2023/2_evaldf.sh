@@ -4,8 +4,8 @@
 
 DATA_PATH="/datab/Dataset/ASVspoof/LA/" # path to downloaded DF dataset
 BATCH_SIZE=10 # batch size for evaluation on GPU 24gb memory
-MODEL_PATH="pretrained/tts_only_trans64_concat.pth" # path to the model
-EVAL_OUTPUT="test.txt" # output file name
+MODEL_PATH="pretrained/full_trans64_concat.pth" # path to the model
+EVAL_OUTPUT="full_trans64.txt" # output file name
 TRACK="DF"
 SUBSET="eval" # eval or hidden_track or progress
 
