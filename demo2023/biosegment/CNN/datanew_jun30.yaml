@@ -1,0 +1,33 @@
+lfcc:
+  fs: 16000
+  num_ceps: 40
+  pre_emph: 0
+  pre_emph_coeff: 0.97
+  win_len: 0.050
+  win_hop: 0.025
+  win_type: "hamming"
+  nfilts: 70
+  nfft: 1024
+  low_freq: 0
+  high_freq: 8000
+  scale: "constant"
+  dct_type: 2
+  normalize: 0
+  order_deltas: 2
+
+model:
+  name: "M5"
+  feat_len: 30
+  batch_size: 32
+  n_input: 1
+  n_output: 3
+  lr: 0.001
+  weight_decay: 0.0001
+  n_epoch: 50
+  padding_type: "repeat"
+  params:
+    n_channel: 32
+    n_output: 3
+    stride: 1
+    h_in: 30 
+    w_in: 120

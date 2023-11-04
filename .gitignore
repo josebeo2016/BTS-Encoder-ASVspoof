@@ -29,5 +29,12 @@ distillation/test_softmax_logsoftmax_scores.txt
 **/logs/
 **/models/
 
-**/feats/*
+**feats**
+
 distillation/wav2vec_bio_emb/
+**pretrained**
+
+**keys**
+**downloads**
+
+

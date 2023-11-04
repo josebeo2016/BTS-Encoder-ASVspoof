@@ -250,7 +250,7 @@ if __name__ == '__main__':
     if args.eval:
         file_eval = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.eval.trl.txt'.format(prefix,prefix_2021)),is_train=False,is_eval=True, tts_only=args.tts_only)
         print('no. of eval trials',len(file_eval))
-        eval_set=Dataset_ASVspoof2021_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path+'/../ASVspoof2021_{}_eval/'.format(args.track)))
+        eval_set=Dataset_ASVspoof2021_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path+'/ASVspoof2021_{}_eval/'.format(args.track)))
         produce_evaluation_file(eval_set, model, device, args.eval_output)
         sys.exit(0)
 
@@ -260,7 +260,6 @@ if __name__ == '__main__':
         eval_set=Dataset_ASVspoof2019_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path+'ASVspoof2019_{}_eval/'.format(args.track)))
         produce_evaluation_file_2019(eval_set, model, device, args.eval_output)
         sys.exit(0)
-     
     # define train dataloader
 
     d_label_trn,file_train = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.train.trn.txt'.format(prefix,prefix_2019)),is_train=True,is_eval=False, tts_only=args.tts_only)
