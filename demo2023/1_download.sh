@@ -33,7 +33,7 @@ cd ../
 # Download feats
 ##########################################
 echo "Downloading pre-calculated BTS embedding for DF2021"
-url=""
+url="1gvsDc9PhCgzFwV2AYs7CsiSrbFLDb2Mm"
 directory="feats/"
 filename="feats_eval_2021.tar.gz"
 # Check if the directory exists. If not, create the directory
@@ -49,7 +49,7 @@ if [ -f "$filename" ]; then
   echo "$filename exists."
 else
   # Download the file
-  wget "$url"
+  gdown "$url"
   tar -xvf "$filename"
 fi
 cd ../
@@ -58,7 +58,7 @@ cd ../
 ##########################################
 directory="pretrained/"
 filename="full_trans64_concat.pth"
-url=""
+url="1L9TPpFXKafH7PTaWxTKA8sjQLSP5NyVz"
 # Check if the directory exists. If not, create the directory
 if [ ! -d "$directory" ]; then
   mkdir -p "$directory"
@@ -72,5 +72,5 @@ if [ -f "$filename" ]; then
   echo "$filename exists."
 else
   # Download the file
-  wget "$url"
+  gdown "$url"
 fi

@@ -66,6 +66,9 @@ if [ $retVal -ne 0 ]; then
 
     # install auditok
     pip install auditok==0.2.0
+
+    # install gdown
+    pip install gdown
     
 
 else
