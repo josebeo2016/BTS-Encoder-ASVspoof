@@ -9,7 +9,7 @@
 ## Dataset
 - The DF2021 should be download [here](https://zenodo.org/records/4835108). Take long time to download
 - The pre-calculated BTS encoding and pretrained model should be download [here](https://drive.google.com/drive/folders/1uuPaP2c117h6yWvNIyh-91JlMPnTQfxw?usp=drive_link)
-- the script `1_download.sh`
+- the script `1_download.sh` only supports downloading pretrained models.
 
 
 ## Demo scenario
