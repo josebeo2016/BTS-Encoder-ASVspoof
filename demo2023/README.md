@@ -16,7 +16,7 @@
 - Setup environment `bash 0_setup.sh`
 - Download pretrained: `bash 1_download.sh`
 - Evaluate DF2021: `bash 2_evaldf.sh`
-<!-- - Calculate EER: `bash 3_calculate.sh` -->
+<!-- - Calculate EER: `bash 3_scoring.sh` -->
 
 ## Manual
 
