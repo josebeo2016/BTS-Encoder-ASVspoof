@@ -3,6 +3,23 @@
 # usage: bash 01_download_pretrained.sh
 #
 # URL of the file that needs to be downloaded
+eval "$(conda shell.bash hook)"
+
+conda activate fairseq
+retVal=$?
+if [ $retVal -ne 0 ]; then
+    echo "Cannot load fairseq, please run 0_setup.sh first"
+    exit 1
+fi
+
+##########################################
+# Download keys for eval-package
+##########################################
+echo "Downloading keys for eval-package"
+cd eval-package/
+bash download.sh
+cd ../
+
 ##########################################
 # Download w2v model
 ##########################################
