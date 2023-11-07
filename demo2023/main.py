@@ -222,6 +222,8 @@ if __name__ == '__main__':
                         help='Path to config yaml file')
     parser.add_argument('--eval_2021', action='store_true', default=False,
                         help='eval mode')
+    parser.add_argument('--eval_custom', action='store_true', default=False,
+                        help='eval mode')
     parser.add_argument('--bio_extract', action='store_true', default=False,
                         help='eval mode')
     parser.add_argument('--is_eval', action='store_true', default=False,help='eval database')

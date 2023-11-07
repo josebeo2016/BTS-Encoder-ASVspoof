@@ -65,7 +65,19 @@ def join_protocol_score(pd_protocol, pd_score):
     ------
       pd_final     dataFrame, joint dataFrame from pd_protocol and pd_score
     """
+    # pd_final = pandas.concat([pd_protocol, pd_score], axis=1, join="inner")
+    # if len(pd_protocol) != len(pd_score) or len(pd_protocol) != len(pd_final):
+    #     print("Error: protocol and score seem to mismatch. Please check!")
+    #     print("Protocol file has {:d} entries".format(len(pd_protocol)))
+    #     print("Score file has {:d} entries".format(len(pd_score)))
+    #     print("Number of common entries is {:d}".format(len(pd_final)))
+    #     print("\nIs the score file incomplete?")
+    #     print("Has you selected the correct track?")
+    #     sys.exit(1)
+    # return pd_final
+    # [PHUCDT] No need to same length with protocol for small eval 
     pd_final = pandas.concat([pd_protocol, pd_score], axis=1, join="inner")
+    print("Number of pd_final: ", len(pd_final))
     if len(pd_protocol) != len(pd_score) or len(pd_protocol) != len(pd_final):
         print("Error: protocol and score seem to mismatch. Please check!")
         print("Protocol file has {:d} entries".format(len(pd_protocol)))
@@ -73,9 +85,8 @@ def join_protocol_score(pd_protocol, pd_score):
         print("Number of common entries is {:d}".format(len(pd_final)))
         print("\nIs the score file incomplete?")
         print("Has you selected the correct track?")
-        sys.exit(1)
+        # sys.exit(1)
     return pd_final
-
 
 if __name__ == "__main__":
     print("pd_tools")

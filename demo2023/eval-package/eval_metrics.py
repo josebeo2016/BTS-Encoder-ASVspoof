@@ -154,6 +154,7 @@ def compute_tDCF(bonafide_score_cm, spoof_score_cm, Pfa_asv, Pmiss_asv, Pfa_spoo
     # Sanity check that inputs are scores and not decisions
     n_uniq = np.unique(combined_scores).size
     if n_uniq < 3:
+        print('PHUCDT')
         sys.exit('ERROR: You should provide soft CM scores - not binary decisions')
 
     # Obtain miss and false alarm rates of CM

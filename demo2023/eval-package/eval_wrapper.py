@@ -269,7 +269,9 @@ def get_mintDCF_eer(bonafide_score_cm, spoof_score_cm, C0, C1, C2):
 
     # Sanity check that inputs are scores and not decisions
     n_uniq = np.unique(combined_scores).size
+    
     if n_uniq < 3:
+        print('PHUCDT ', n_uniq)
         sys.exit('ERROR: You should provide soft CM scores - not binary decisions')
 
     # Obtain miss and false alarm rates of CM
