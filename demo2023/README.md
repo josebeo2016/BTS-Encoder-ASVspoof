@@ -11,6 +11,8 @@
 - The pre-calculated BTS encoding and pretrained model should be download [here](https://drive.google.com/drive/folders/1uuPaP2c117h6yWvNIyh-91JlMPnTQfxw?usp=drive_link)
 - the script `1_download.sh` only supports downloading pretrained models.
 
+## Installation
+- Install Anaconda following the guideline in [https://conda.io/projects/conda/en/latest/user-guide/install/linux.html#](https://conda.io/projects/conda/en/latest/user-guide/install/linux.html#)
 
 ## Demo scenario
 - Setup environment `bash 0_setup.sh`
