@@ -38,6 +38,12 @@ do
     
     PACKNAME=$(basename ${URLLINK})
 
+	if [ -f "$PACKNAME" ]; then
+		echo "$PACKNAME exists."
+		tar -xzf ${PACKNAME}
+		continue
+	fi
+
     echo "Download ${URLLINK}"
     ${TOOL} ${URLLINK}
     
