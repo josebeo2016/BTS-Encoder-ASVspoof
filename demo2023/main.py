@@ -8,7 +8,7 @@ from torch import nn
 from torch import Tensor
 from torch.utils.data import DataLoader
 import yaml
-from data_utils import genSpoof_list,Dataset_ASVspoof2019_train,Dataset_ASVspoof2021_eval, Dataset_ASVspoof2019_eval
+from data_utils import genSpoof_list, Dataset_eval,Dataset_ASVspoof2019_train,Dataset_ASVspoof2021_eval, Dataset_ASVspoof2019_eval
 from model import Model
 from tensorboardX import SummaryWriter
 from core_scripts.startup_config import set_random_seed
@@ -243,6 +243,9 @@ if __name__ == '__main__':
 
     if not os.path.exists('models'):
         os.mkdir('models')
+    
+    if not os.path.exists('feats'):
+        os.mkdir('feats')
     args = parser.parse_args()
     
     # dir_yaml = os.path.splitext('model_config_RawNet')[0] + '.yaml'
@@ -336,6 +339,12 @@ if __name__ == '__main__':
         sys.exit(0)
     
 
+    if args.eval_custom:
+        file_eval = genSpoof_list( dir_meta =  os.path.join(args.database_path,'protocol.txt'),is_train=False,is_eval=True)
+        print('no. of eval trials',len(file_eval))
+        eval_set=Dataset_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path))
+        produce_evaluation_file(eval_set, model, device, args.eval_output,batch_size=args.batch_size)
+        sys.exit(0)
     # define train dataloader
 
     d_label_trn,file_train = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.train.trn.txt'.format(prefix,prefix_2019)),is_train=True,is_eval=False)
