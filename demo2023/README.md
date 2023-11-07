@@ -8,6 +8,13 @@
 
 ## Dataset
 - The DF2021 should be download [here](https://zenodo.org/records/4835108). Take long time to download
+- Note that after decompressed the dataset, the directory tree should look like:
+```
+- ASVspoof2021_DF_eval/
+    + flac/
+- ASVspoof_DF_cm_protocols/
+    + ASVspoof2021.DF.cm.eval.trl.txt
+```
 - The pre-calculated BTS encoding and pretrained model should be download [here](https://drive.google.com/drive/folders/1uuPaP2c117h6yWvNIyh-91JlMPnTQfxw?usp=drive_link)
 - the script `1_download.sh` only supports downloading pretrained models.
 

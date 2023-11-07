@@ -2,10 +2,10 @@
 # usage: bash 2_evaldf.sh
 # Enter conda environment
 
-DATA_PATH="/datab/Dataset/ASVspoof/LA/" # path to downloaded DF dataset
+DATA_PATH="./DATA/" # path to downloaded DF dataset
 BATCH_SIZE=10 # batch size for evaluation on GPU 24gb memory
 MODEL_PATH="pretrained/full_trans64_concat.pth" # path to the model
-EVAL_OUTPUT="test_small.txt" # output file name
+EVAL_OUTPUT="random_10000_DF.txt" # output file name
 TRACK="DF"
 SUBSET="eval" # eval or hidden_track or progress
 

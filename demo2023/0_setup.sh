@@ -23,10 +23,12 @@ if [ $retVal -ne 0 ]; then
     #  fairseq 0.10.2 on pip does not work
     # git clone https://github.com/pytorch/fairseq
     # cd fairseq
-    cd fairseq-a54021305d6b3c4c5959ac9395135f63202db8f1
+    # cd fairseq-a54021305d6b3c4c5959ac9395135f63202db8f1
     #  checkout this specific commit. Latest commit does not work
     # git checkout 862efab86f649c04ea31545ce28d13c59560113d
-    pip install --editable ./
+    # pip install --editable ./
+    pip install git+https://github.com/facebookresearch/fairseq.git@a54021305d6b3c4c5959ac9395135f63202db8f1
+
 
     # install scipy
     pip install scipy==1.7.3
