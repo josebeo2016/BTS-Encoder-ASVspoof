@@ -1,8 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from linear import MLP
-from xlsr import SSLModel
+try:
+    from linear import MLP
+    from xlsr import SSLModel
+except:
+    from .linear import MLP
+    from .xlsr import SSLModel
 
 class Model(nn.Module):
     def __init__(self, config, device):

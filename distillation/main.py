@@ -185,7 +185,8 @@ if __name__ == '__main__':
     
     parser.add_argument('--tts_only', action='store_true', default=False,
                         help='distillation mode')
-    
+    parser.add_argument('--score', action='store_true', default=False,
+                        help='score generate for dnnfuse')
     # backend options
     parser.add_argument('--cudnn-deterministic-toggle', action='store_false', \
                         default=True, 

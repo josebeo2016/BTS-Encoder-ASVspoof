@@ -9,15 +9,24 @@ from collections import OrderedDict
 from torch.nn.parameter import Parameter
 import math
 
+import sys
+import os
 
-import transformer
-import commons
-import cnns2s
-from backend import Model as backend
-import biosegment
-# from . import commons
-# from . import transformer
-# from . import cnns2s
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+
+try:
+    
+    import transformer
+    import commons
+    import cnns2s
+    from backend import Model as backend
+# import biosegment
+except:
+    from . import commons
+    from . import transformer
+    from . import cnns2s
+    from .backend import Model as backend
 
 
 ___author__ = "Hemlata Tak"

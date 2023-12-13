@@ -86,6 +86,38 @@ def produce_bio_extract_file_2019(
             
     print("bio saved to {}".format(save_path))
 
+def produce_score_file_2019(
+    dataset,
+    model,
+    device,
+    batch_size,
+    save_path):
+    """Perform evaluation and save the score to a file"""
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
+    model.eval()
+    
+    for batch_x, batch_bio, bio_lengths, keys in data_loader:
+        # fname_list = []
+        score_list = []  
+        # batch_size = batch_x.size(0)
+        batch_x = batch_x.to(device)
+        bio_lengths = bio_lengths.to(device)
+        batch_bio = batch_bio.to(device)
+        batch_out, _ = model(batch_x, batch_bio, bio_lengths)
+        batch_score = (batch_out[:, 1]
+                       ).data.cpu().numpy().ravel()
+        
+        score_list.extend(batch_out.data.cpu().numpy().tolist())
+        
+        with open(save_path, "a+") as fh:
+            for fn, sco in zip(keys, score_list.tolist()):
+                _, utt_id, _, _, _ = fn.strip().split(' ')
+                # assert fn == utt_id
+                fh.write("{} {} {}\n".format(utt_id, sco[0], sco[1]))
+        fh.close()
+
+    print("Scores saved to {}".format(save_path))
+
 def produce_evaluation_file_2019(
     dataset,
     model,
@@ -117,6 +149,50 @@ def produce_evaluation_file_2019(
 
     print("Scores saved to {}".format(save_path))
 
+def produce_emb_file(dataset, model, device, save_path, batch_size=10):
+    data_loader = DataLoader(dataset, batch_size, shuffle=False, drop_last=False)
+    num_correct = 0.0
+    num_total = 0.0
+    model.eval()
+    model.is_train = True
+
+    fname_list = []
+    key_list = []
+    score_list = []
+    
+    for batch_x, batch_bio, bio_lengths, utt_id in tqdm(data_loader):
+        fname_list = []
+        score_list = []  
+        pred_list = []
+        batch_size = batch_x.size(0)
+        
+        batch_x = batch_x.to(device)
+        bio_lengths = bio_lengths.to(device)
+        batch_bio = batch_bio.to(device)
+        batch_out, batch_emb = model(batch_x, batch_bio, bio_lengths)
+        
+        score_list.extend(batch_out.data.cpu().numpy().tolist())
+        # add outputs
+        fname_list.extend(utt_id)
+
+        # save_path now must be a directory
+        # make dir if not exist
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        # Then each emb should be save in a file with name is utt_id
+        for f, emb in zip(fname_list,batch_emb):
+            # normalize filename
+            f = f.split('/')[-1].split('.')[0] # utt id only
+            save_path_utt = os.path.join(save_path, f)
+            np.save(save_path_utt, emb.data.cpu().numpy())
+        
+        # score file save into a single file
+        with open(os.path.join(save_path, "scores.txt"), 'a+') as fh:
+            for f, cm in zip(fname_list,score_list):
+                fh.write('{} {} {}\n'.format(f, cm[0], cm[1]))
+        fh.close()   
+    print('Scores saved to {}'.format(save_path))
+
 def produce_evaluation_file(dataset, model, device, save_path, batch_size):
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
     model.eval()
@@ -129,15 +205,15 @@ def produce_evaluation_file(dataset, model, device, save_path, batch_size):
         bio_lengths = bio_lengths.to(device)
         batch_bio = batch_bio.to(device)
         batch_out, _ = model(batch_x, batch_bio, bio_lengths)
-        batch_score = (batch_out[:, 1]
-                       ).data.cpu().numpy().ravel()
+        # batch_score = (batch_out[:, 1]
+        #                ).data.cpu().numpy().ravel()
         # add outputs
         fname_list.extend(utt_id)
-        score_list.extend(batch_score.tolist())
+        score_list.extend(batch_out.data.cpu().numpy().tolist())
         
         with open(save_path, 'a+') as fh:
             for f, cm in zip(fname_list,score_list):
-                fh.write('{} {}\n'.format(f, cm))
+                fh.write('{} {} {}\n'.format(f, cm[0], cm[1] ))
         fh.close()   
     print('Scores saved to {}'.format(save_path))
 
@@ -226,9 +302,12 @@ if __name__ == '__main__':
                         help='eval mode')
     parser.add_argument('--bio_extract', action='store_true', default=False,
                         help='eval mode')
+    parser.add_argument('--score', action='store_true', default=False,
+                        help='gen score file from LA19')
     parser.add_argument('--is_eval', action='store_true', default=False,help='eval database')
     parser.add_argument('--eval_2019', action='store_true', default=False, help='eval on ASVspoof2019 eval set, split follow attack type')
     parser.add_argument('--eval_part', type=int, default=0)
+    parser.add_argument('--emb', action='store_true', default=False, help='extract emb')
     # backend options
     parser.add_argument('--cudnn-deterministic-toggle', action='store_false', \
                         default=True, 
@@ -328,9 +407,12 @@ if __name__ == '__main__':
         file_eval = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.eval.trl.txt'.format(prefix,prefix_2021)),is_train=False,is_eval=True)
         print('no. of eval trials',len(file_eval))
         eval_set=Dataset_ASVspoof2021_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path+'/ASVspoof2021_{}_eval/'.format(args.track)))
-        produce_evaluation_file(eval_set, model, device, args.eval_output,batch_size=args.batch_size)
+        if args.emb:
+            produce_emb_file(eval_set, model, device, args.eval_output,batch_size=args.batch_size)
+        else:
+            produce_evaluation_file(eval_set, model, device, args.eval_output,batch_size=args.batch_size)
         sys.exit(0)
-
+    
     #PHUCDT
     #evaluation 2019
     if args.eval_2019:
