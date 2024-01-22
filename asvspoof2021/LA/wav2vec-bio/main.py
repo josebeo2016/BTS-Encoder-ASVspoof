@@ -338,8 +338,24 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=args.weight_decay)
     
     if args.model_path:
-        model.load_state_dict(torch.load(args.model_path,map_location=device))
+        try:
+            model.load_state_dict(torch.load(args.model_path,map_location=device))
+            if torch.cuda.device_count() > 1:
+                model = nn.DataParallel(model)
+        except:
+            print('DataParallel enabled')
+            model = Model(parser1['model'], device)
+            model =(model).to(device)
+            if torch.cuda.device_count() > 1:
+                model = nn.DataParallel(model)
+            model.load_state_dict(torch.load(args.model_path,map_location=device))
+            
         print('Model loaded : {}'.format(args.model_path))
+    
+    else:
+        if torch.cuda.device_count() > 1:
+            model = nn.DataParallel(model)
+            print('Model initialized')
         
     # print param
     if args.print_param:
