@@ -46,17 +46,18 @@ def evaluate_accuracy(dev_loader, model, device):
     num_correct = 0.0
     num_total = 0.0
     model.eval()
-    for batch_x, batch_bio, bio_lengths, batch_y in dev_loader:
-        
-        batch_size = batch_x.size(0)
-        num_total += batch_size
-        batch_x = batch_x.to(device)
-        batch_bio = batch_bio.to(device)
-        bio_lengths = bio_lengths.to(device)
-        batch_y = batch_y.view(-1).type(torch.int64).to(device)
-        batch_out, _ = model(batch_x, batch_bio, bio_lengths)
-        _, batch_pred = batch_out.max(dim=1)
-        num_correct += (batch_pred == batch_y).sum(dim=0).item()
+    with torch.no_grad():
+        for batch_x, batch_bio, bio_lengths, batch_y in dev_loader:
+            
+            batch_size = batch_x.size(0)
+            num_total += batch_size
+            batch_x = batch_x.to(device)
+            batch_bio = batch_bio.to(device)
+            bio_lengths = bio_lengths.to(device)
+            batch_y = batch_y.view(-1).type(torch.int64).to(device)
+            batch_out, _ = model(batch_x, batch_bio, bio_lengths)
+            _, batch_pred = batch_out.max(dim=1)
+            num_correct += (batch_pred == batch_y).sum(dim=0).item()
     return 100 * (num_correct / num_total)
 
 
@@ -68,21 +69,21 @@ def produce_bio_extract_file_2019(
     """Perform evaluation and save the score to a file"""
     data_loader = DataLoader(dataset, batch_size=8, shuffle=False, drop_last=False)
     model.eval()
-    
-    for batch_x, batch_bio, bio_lengths, keys in data_loader:
-        # fname_list = []
-        # score_list = []  
-        batch_size = batch_x.size(0)
-        batch_x = batch_x.to(device)
-        bio_lengths = bio_lengths.to(device)
-        batch_bio = batch_bio.to(device)
-        _, batch_bio_out = model(batch_x, batch_bio, bio_lengths)
-       
+    with torch.no_grad():
+        for batch_x, batch_bio, bio_lengths, keys in data_loader:
+            # fname_list = []
+            # score_list = []  
+            batch_size = batch_x.size(0)
+            batch_x = batch_x.to(device)
+            bio_lengths = bio_lengths.to(device)
+            batch_bio = batch_bio.to(device)
+            _, batch_bio_out = model(batch_x, batch_bio, bio_lengths)
+        
 
-        for fn, sco in zip(keys, batch_bio_out.tolist()):
-            _, utt_id, _, src, key = fn.strip().split(' ')
-            torch.save(sco, save_path + "/" + utt_id)
-            # assert fn == utt_id
+            for fn, sco in zip(keys, batch_bio_out.tolist()):
+                _, utt_id, _, src, key = fn.strip().split(' ')
+                torch.save(sco, save_path + "/" + utt_id)
+                # assert fn == utt_id
             
     print("bio saved to {}".format(save_path))
 
@@ -95,25 +96,25 @@ def produce_evaluation_file_2019(
     """Perform evaluation and save the score to a file"""
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
     model.eval()
-    
-    for batch_x, batch_bio, bio_lengths, keys in data_loader:
-        # fname_list = []
-        # score_list = []  
-        # batch_size = batch_x.size(0)
-        batch_x = batch_x.to(device)
-        bio_lengths = bio_lengths.to(device)
-        batch_bio = batch_bio.to(device)
-        batch_out, _ = model(batch_x, batch_bio, bio_lengths)
-        batch_score = (batch_out[:, 1]
-                       ).data.cpu().numpy().ravel()
+    with torch.no_grad():
+        for batch_x, batch_bio, bio_lengths, keys in data_loader:
+            # fname_list = []
+            # score_list = []  
+            # batch_size = batch_x.size(0)
+            batch_x = batch_x.to(device)
+            bio_lengths = bio_lengths.to(device)
+            batch_bio = batch_bio.to(device)
+            batch_out, _ = model(batch_x, batch_bio, bio_lengths)
+            batch_score = (batch_out[:, 1]
+                        ).data.cpu().numpy().ravel()
 
-        
-        with open(save_path, "a+") as fh:
-            for fn, sco in zip(keys, batch_score.tolist()):
-                _, utt_id, _, src, key = fn.strip().split(' ')
-                # assert fn == utt_id
-                fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
-        fh.close()
+            
+            with open(save_path, "a+") as fh:
+                for fn, sco in zip(keys, batch_score.tolist()):
+                    _, utt_id, _, src, key = fn.strip().split(' ')
+                    # assert fn == utt_id
+                    fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
+            fh.close()
 
     print("Scores saved to {}".format(save_path))
 
@@ -164,26 +165,26 @@ def produce_emb_file(dataset, model, device, save_path, batch_size=10):
 def produce_evaluation_file(dataset, model, device, save_path, batch_size):
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
     model.eval()
-    
-    for batch_x, batch_bio, bio_lengths, utt_id in tqdm(data_loader):
-        fname_list = []
-        score_list = []  
-        batch_size = batch_x.size(0)
-        batch_x = batch_x.to(device)
-        bio_lengths = bio_lengths.to(device)
-        batch_bio = batch_bio.to(device)
-        batch_out, _ = model(batch_x, batch_bio, bio_lengths)
-        batch_score = (batch_out[:, 1]
-                       ).data.cpu().numpy().ravel()
-        # add outputs
-        fname_list.extend(utt_id)
-        score_list.extend(batch_out.data.cpu().numpy().tolist())
-        
-        with open(save_path, 'a+') as fh:
-            for f, cm in zip(fname_list,score_list):
-                fh.write('{} {} {}\n'.format(f, cm[0], cm[1]))
-        fh.close()   
-    print('Scores saved to {}'.format(save_path))
+    with torch.no_grad():
+        for batch_x, batch_bio, bio_lengths, utt_id in tqdm(data_loader):
+            fname_list = []
+            score_list = []  
+            batch_size = batch_x.size(0)
+            batch_x = batch_x.to(device)
+            bio_lengths = bio_lengths.to(device)
+            batch_bio = batch_bio.to(device)
+            batch_out, _ = model(batch_x, batch_bio, bio_lengths)
+            batch_score = (batch_out[:, 1]
+                        ).data.cpu().numpy().ravel()
+            # add outputs
+            fname_list.extend(utt_id)
+            score_list.extend(batch_out.data.cpu().numpy().tolist())
+            
+            with open(save_path, 'a+') as fh:
+                for f, cm in zip(fname_list,score_list):
+                    fh.write('{} {} {}\n'.format(f, cm[0], cm[1]))
+            fh.close()   
+        print('Scores saved to {}'.format(save_path))
 
 def train_epoch(train_loader, model, lr,optim, device):
     running_loss = 0
