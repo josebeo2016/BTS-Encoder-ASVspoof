@@ -201,7 +201,7 @@ class bioEncoderRNN(nn.Module):
         
         
         self.bio_scoring = nn.Linear(in_features = d_args['bio_rnn'],
-			out_features = d_args['nb_fc_node'],bias=True)
+			out_features = d_args['bio_out'],bias=True)
         
     def forward(self, bio, bio_lengths):
         
@@ -221,44 +221,6 @@ class bioEncoderRNN(nn.Module):
         bio_scoring = self.bio_scoring(hidden[-1,:,:])
         # bio_scoring = torch.tanh(self.bio_scoring(hidden[-1,:,:]))
         return bio_scoring
-
-class bioEncoderRNNsmall(nn.Module):
-    def __init__(self, d_args, device) -> None:
-        super(bioEncoderRNNsmall, self).__init__()
-
-        self.device=device
-        
-        self.bio_emb = nn.Embedding(d_args['n_bios'], d_args['bio_dim'])
-        self.bio_dim = d_args['bio_dim'] 
-
-        # nn.init.normal_(self.bio_emb.weight, 0.0, d_args['bio_dim']**-0.5)
-        
-        # length scoring == # fc1 out features
-        self.rnn = nn.GRU(d_args['bio_dim'], d_args['bio_rnn'], 1, batch_first=True)
-        
-        
-        self.bio_scoring = nn.Linear(in_features = d_args['bio_rnn'],
-			out_features = d_args['bio_out'],bias=True)
-        
-    def forward(self, bio, bio_lengths):
-        
-        bio = self.bio_emb(bio) # [b, bio_length, bio_dim]
-        # print(bio.size())
-        bio_lengths = bio_lengths.cpu().numpy()
- 
-        bio = nn.utils.rnn.pack_padded_sequence(
-                        bio, bio_lengths, batch_first=True)
-
-        self.rnn.flatten_parameters()
-        bio, hidden = self.rnn(bio)
-        bio, _ = nn.utils.rnn.pad_packed_sequence(
-            bio, batch_first=True)
-        
-        # last hidden [b, bio_dim]
-        bio_scoring = self.bio_scoring(hidden[-1,:,:])
-        # bio_scoring = torch.tanh(self.bio_scoring(hidden[-1,:,:]))
-        return bio_scoring
-
 
 class bioEncoderConv(nn.Module):
     def __init__(self, d_args, device) -> None:
@@ -314,37 +276,6 @@ class bioEncoderTransformer(nn.Module):
 
         return bio_scoring[:,:,-1] # [b, nb_fc_node]
         # return bio_scoring # for gru
-
-
-class bioEncoderTransformersmall(nn.Module):
-    def __init__(self, d_args, device):
-        super(bioEncoderTransformersmall, self).__init__()
-
-        self.device=device
-        self.bio_dim = d_args['bio_dim']
-        self.bio_embedding = nn.Embedding(d_args['n_bios'], d_args['bio_dim'])
-        nn.init.normal_(self.bio_embedding.weight, 0.0, d_args['bio_dim']**-0.5)
-
-        self.encoder = transformer.Encoder(
-                        d_args['bio_dim'],
-                        d_args['pf_dim'],
-                        d_args['n_heads'],
-                        d_args['n_layers'],
-                        )
-        # self.bio_scoring = nn.Linear(in_features = d_args['bio_rnn'],
-        #         out_features = d_args['nb_fc_node'],bias=True)
-        self.bio_scoring= nn.Conv1d(d_args['bio_dim'], d_args['bio_out'], 1)
-    
-    def forward(self, bio, bio_lengths):
-        bio = self.bio_embedding(bio) * math.sqrt(self.bio_dim) # [b, bio_lengths, bio_dim]
-        bio = torch.transpose(bio, 1, -1) # [b, bio_dim, bio_lengths]
-        bio_mask = torch.unsqueeze(commons.sequence_mask(bio_lengths, bio.size(2)), 1).to(bio.dtype)
-
-        bio = self.encoder(bio * bio_mask, bio_mask) # [b, bio_dim, bio_lengths]
-
-        bio_scoring = self.bio_scoring(bio) * bio_mask
-
-        return bio_scoring[:,:,-1] # [b, bio_out]
 
 
 class bioEncoderlight(nn.Module):
@@ -422,28 +353,25 @@ class RawNet(nn.Module):
         self.fc1_gru = nn.Linear(in_features = d_args['gru_node'],
 			out_features = d_args['nb_fc_node'])
         
-        #PHUCDT
-        # self.bioScoring = bioEncoderConv(d_args, self.device)
-        # self.bioScoring = bioEncoderRNN(d_args, self.device) #add
-        # self.bioScoring = bioEncoderTransformer(d_args, device) #add
-        # self.bioScoring = bioEncoderlight(d_args, self.device)
-        # self.bioScoring = bioEncoderRNNsmall(d_args, self.device) #concat
-        self.bioScoring = bioEncoderTransformersmall(d_args, self.device) #concat
-        
-        # self.fc1 = nn.Linear(in_features = d_args['nb_fc_node'],
-		# 	out_features = d_args['bio_out'],bias=True)
+        # BIO correlation encoding
+        self.bio_mode = d_args['bio_enc']['mode']
+        if d_args['bio_enc']['name'] == 'cnns2s':
+            self.bioScoring = bioEncoderConv(d_args, self.device)
+        elif d_args['bio_enc']['name'] == 'transformer':
+            self.bioScoring = bioEncoderTransformer(d_args, self.device)
+        elif d_args['bio_enc']['name'] == 'rnn':
+            self.bioScoring = bioEncoderRNN(d_args, self.device)
+            
         
         # Concat
-        self.fc2_gru = nn.Linear(in_features = d_args['nb_fc_node']+d_args['bio_out'],
-			out_features = d_args['nb_classes'],bias=True)
+        if (self.bio_mode == 'concat'):
+            self.fc2_gru = nn.Linear(in_features = d_args['nb_fc_node']+d_args['bio_out'],
+			                            out_features = d_args['nb_classes'],bias=True)
         
-        # ADD
-        # self.fc2_gru = nn.Linear(in_features = d_args['nb_fc_node'],
-		# 	out_features = d_args['nb_classes'],bias=True)
+        else:
+            self.fc2_gru = nn.Linear(in_features = d_args['nb_fc_node'],
+                out_features = d_args['nb_classes'],bias=True)
 
-        
-			
-       
         self.sig = nn.Sigmoid()
         self.dropout = nn.Dropout(p=0.25)
         self.logsoftmax = nn.LogSoftmax(dim=1)
@@ -513,8 +441,10 @@ class RawNet(nn.Module):
         #PHUCDT
         if (bio is not None):
             bio_scoring = self.bioScoring(bio, bio_lengths)
-            # x = x + bio_scoring # add the conditioning bio scoring 
-            x = torch.cat((x, bio_scoring), 1) # concat the conditioning bio scoring 
+            if (self.bio_mode == 'concat'):
+                x = torch.cat((x, bio_scoring), 1)
+            elif (self.bio_mode == 'add'):
+                x = x + bio_scoring
 
         b=x
         x = self.fc2_gru(x)

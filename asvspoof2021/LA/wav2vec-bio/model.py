@@ -270,23 +270,23 @@ class Model(nn.Module):
         self.is_add = d_args['is_add']
         self.backend = backend(d_args, self.device)
         
-        #PHUCDT
-        # self.bioScoring = bioEncoderConv(d_args, self.device)
-        # self.bioScoring = bioEncoderRNN(d_args, self.device) #add
-        # self.bioScoring = bioEncoderTransformer(d_args, device) #add
-        # self.bioScoring = bioEncoderlight(d_args, self.device)
-        # self.bioScoring = bioEncoderRNNsmall(d_args, self.device) #concat
-        self.bioScoring = bioEncoderTransformersmall(d_args, self.device) #concat
+        # BIO correlation encoding
+        self.bio_mode = d_args['bio_enc']['mode']
+        if d_args['bio_enc']['name'] == 'cnns2s':
+            self.bioScoring = bioEncoderConv(d_args, self.device)
+        elif d_args['bio_enc']['name'] == 'transformer':
+            self.bioScoring = bioEncoderTransformer(d_args, self.device)
+        elif d_args['bio_enc']['name'] == 'rnn':
+            self.bioScoring = bioEncoderRNN(d_args, self.device)
+            
         
-        if self.is_add:
-            # ADD
-            self.fc1 = nn.Linear(in_features = self.backend.out_dim,
-                             out_features = d_args['bio_out'],bias=True)
-            self.fc2 = nn.Linear(in_features = self.backend.out_dim,
-                            out_features = d_args['nb_classes'],bias=True)
+        # Concat
+        if (self.bio_mode == 'concat'):
+            self.fc2 = nn.Linear(in_features = d_args['nb_fc_node']+d_args['bio_out'],
+			                            out_features = d_args['nb_classes'],bias=True)
+        
         else:
-            # Concat
-            self.fc2 = nn.Linear(in_features = self.backend.out_dim + d_args['bio_out'],
+            self.fc2 = nn.Linear(in_features = d_args['nb_fc_node'],
                 out_features = d_args['nb_classes'],bias=True)
         
 
@@ -298,14 +298,13 @@ class Model(nn.Module):
 
         out ,x = self.backend(x)
         
-        # #PHUCDT
+        #PHUCDT
         if (bio is not None):
             bio_scoring = self.bioScoring(bio, bio_lengths)
-            if (self.is_add):
-                x = self.fc1(x)
-                x = x + bio_scoring # add the conditioning bio scoring
-            else:
+            if (self.bio_mode == 'concat'):
                 x = torch.cat((x, bio_scoring), 1)
+            elif (self.bio_mode == 'add'):
+                x = x + bio_scoring
 
         b=x
         x = self.fc2(x)

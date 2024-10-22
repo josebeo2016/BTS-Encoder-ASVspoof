@@ -19,12 +19,15 @@ model:
   bio_dim: 32
   # bioEncoderRNN
   bio_rnn: 64
-  bio_out: 1024
-  # bioEncoderCONV
+  bio_out: 1024 # same as nb_fc_node
+  # Convolutional (if used)
   bio_hid: 256
   n_heads: 4
   pf_dim: 128
   n_layers: 3
+  bio_enc:
+    mode: 'add' # or 'add'
+    name: 'rnn'
 
 
   

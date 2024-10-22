@@ -13,58 +13,84 @@ from model import RawNet
 from tensorboardX import SummaryWriter
 from core_scripts.startup_config import set_random_seed
 from tqdm import tqdm
+import time
 
-__author__ = "Hemlata Tak"
-__email__ = "tak@eurecom.fr"
-__credits__ = ["Jose Patino", "Massimiliano Todisco", "Jee-weon Jung"]
+__author__ = "Phuc DT"
+__email__ = "phucdt@soongsil.ac.kr"
+__credits__ = ["Jose Patino", "Massimiliano Todisco", "Jee-weon Jung, Hemlata Tak"]
 
+
+class EarlyStop:
+    def __init__(self, patience=5, delta=0, init_best=60, save_dir=''):
+        self.patience = patience
+        self.delta = delta
+        self.best_score = init_best
+        self.counter = 0
+        self.early_stop = False
+        self.save_dir = save_dir
+
+    def __call__(self, score, model, epoch):
+        if self.best_score is None:
+            self.best_score = score
+        elif score < self.best_score + self.delta:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            print("Best epoch: {}".format(epoch))
+            self.best_score = score
+            self.counter = 0
+            # save model here
+            torch.save(model.state_dict(), os.path.join(
+                self.save_dir, 'epoch_{}.pth'.format(epoch)))
 
 def evaluate_accuracy(dev_loader, model, device):
     num_correct = 0.0
     num_total = 0.0
     model.eval()
-    for batch_x, batch_bio, bio_lengths, batch_y in dev_loader:
-        
-        batch_size = batch_x.size(0)
-        num_total += batch_size
-        batch_x = batch_x.to(device)
-        batch_bio = batch_bio.to(device)
-        bio_lengths = bio_lengths.to(device)
-        batch_y = batch_y.view(-1).type(torch.int64).to(device)
-        batch_out, _ = model(batch_x, batch_bio, bio_lengths)
-        _, batch_pred = batch_out.max(dim=1)
-        num_correct += (batch_pred == batch_y).sum(dim=0).item()
-    return 100 * (num_correct / num_total)
+    with torch.no_grad():
+        for batch_x, batch_bio, bio_lengths, batch_y in tqdm(dev_loader, ncols=100):
+            
+            batch_size = batch_x.size(0)
+            num_total += batch_size
+            batch_x = batch_x.to(device)
+            batch_bio = batch_bio.to(device)
+            bio_lengths = bio_lengths.to(device)
+            batch_y = batch_y.view(-1).type(torch.int64).to(device)
+            batch_out, _ = model(batch_x, batch_bio, bio_lengths)
+            _, batch_pred = batch_out.max(dim=1)
+            num_correct += (batch_pred == batch_y).sum(dim=0).item()
+        return 100 * (num_correct / num_total)
 
 
 def produce_bio_extract_file_2019(
     dataset,
     model,
     device,
-    save_path):
+    save_path, batch_size=128):
     """Perform evaluation and save the score to a file"""
-    data_loader = DataLoader(dataset, batch_size=128, shuffle=False, drop_last=False)
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
     model.eval()
-    
-    for batch_x, batch_bio, bio_lengths, keys in data_loader:
-        # fname_list = []
-        # score_list = []  
-        batch_size = batch_x.size(0)
-        batch_x = batch_x.to(device)
-        bio_lengths = bio_lengths.to(device)
-        batch_bio = batch_bio.to(device)
-        _, batch_bio_out = model(batch_x, batch_bio, bio_lengths)
+    with torch.no_grad():
+        for batch_x, batch_bio, bio_lengths, keys in tqdm(data_loader, ncols=100):
+            # fname_list = []
+            # score_list = []  
+            batch_size = batch_x.size(0)
+            batch_x = batch_x.to(device)
+            bio_lengths = bio_lengths.to(device)
+            batch_bio = batch_bio.to(device)
+            _, batch_bio_out = model(batch_x, batch_bio, bio_lengths)
 
-                       
-        # add outputs
-        # fname_list.extend(keys)
-        # score_list.extend(batch_score.tolist())
-        
+                        
+            # add outputs
+            # fname_list.extend(keys)
+            # score_list.extend(batch_score.tolist())
+            
 
-        for fn, sco in zip(keys, batch_bio_out.tolist()):
-            _, utt_id, _, src, key = fn.strip().split(' ')
-            torch.save(sco, save_path + "/" + utt_id)
-            # assert fn == utt_id
+            for fn, sco in zip(keys, batch_bio_out.tolist()):
+                _, utt_id, _, src, key = fn.strip().split(' ')
+                torch.save(sco, save_path + "/" + utt_id)
+                # assert fn == utt_id
             
 
     # assert len(trial_lines) == len(fname_list) == len(score_list)
@@ -79,31 +105,31 @@ def produce_evaluation_file_2019(
     dataset,
     model,
     device,
-    save_path):
+    save_path, batch_size=128):
     """Perform evaluation and save the score to a file"""
-    data_loader = DataLoader(dataset, batch_size=32, shuffle=False, drop_last=False)
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
     model.eval()
-    
-    for batch_x, batch_bio, bio_lengths, keys in data_loader:
-        # fname_list = []
-        # score_list = []  
-        batch_size = batch_x.size(0)
-        batch_x = batch_x.to(device)
-        bio_lengths = bio_lengths.to(device)
-        batch_bio = batch_bio.to(device)
-        batch_out, _ = model(batch_x, batch_bio, bio_lengths)
-        batch_score = (batch_out[:, 1]
-                       ).data.cpu().numpy().ravel()
-        # add outputs
-        # fname_list.extend(keys)
-        # score_list.extend(batch_score.tolist())
-        
-        with open(save_path, "a+") as fh:
-            for fn, sco in zip(keys, batch_score.tolist()):
-                _, utt_id, _, src, key = fn.strip().split(' ')
-                # assert fn == utt_id
-                fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
-        fh.close()
+    with torch.no_grad():
+        for batch_x, batch_bio, bio_lengths, keys in tqdm(data_loader, ncols=100):
+            # fname_list = []
+            # score_list = []  
+            batch_size = batch_x.size(0)
+            batch_x = batch_x.to(device)
+            bio_lengths = bio_lengths.to(device)
+            batch_bio = batch_bio.to(device)
+            batch_out, _ = model(batch_x, batch_bio, bio_lengths)
+            batch_score = (batch_out[:, 1]
+                        ).data.cpu().numpy().ravel()
+            # add outputs
+            # fname_list.extend(keys)
+            # score_list.extend(batch_score.tolist())
+            
+            with open(save_path, "a+") as fh:
+                for fn, sco in zip(keys, batch_score.tolist()):
+                    _, utt_id, _, src, key = fn.strip().split(' ')
+                    # assert fn == utt_id
+                    fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
+            fh.close()
     # assert len(trial_lines) == len(fname_list) == len(score_list)
     # with open(save_path, "w") as fh:
     #     for fn, sco, trl in zip(fname_list, score_list, trial_lines):
@@ -112,31 +138,31 @@ def produce_evaluation_file_2019(
     #         fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
     print("Scores saved to {}".format(save_path))
 
-def produce_evaluation_file(dataset, model, device, save_path, batch_size):
+def produce_evaluation_file(dataset, model, device, save_path, batch_size=128):
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
     model.eval()
-    
-    for batch_x, batch_bio, bio_lengths, utt_id in data_loader:
-        fname_list = []
-        score_list = []  
-        batch_size = batch_x.size(0)
-        batch_x = batch_x.to(device)
-        bio_lengths = bio_lengths.to(device)
-        batch_bio = batch_bio.to(device)
-        batch_out, _ = model(batch_x, batch_bio, bio_lengths)
-        batch_score = (batch_out[:, 1]
-                       ).data.cpu().numpy().ravel()
-        # add outputs
-        fname_list.extend(utt_id)
-        score_list.extend(batch_score.tolist())
-        
-        with open(save_path, 'a+') as fh:
-            for f, cm in zip(fname_list,score_list):
-                fh.write('{} {}\n'.format(f, cm))
-        fh.close()   
-    print('Scores saved to {}'.format(save_path))
+    with torch.no_grad():
+        for batch_x, batch_bio, bio_lengths, utt_id in tqdm(data_loader, ncols=100):
+            fname_list = []
+            score_list = []  
+            batch_size = batch_x.size(0)
+            batch_x = batch_x.to(device)
+            bio_lengths = bio_lengths.to(device)
+            batch_bio = batch_bio.to(device)
+            batch_out, _ = model(batch_x, batch_bio, bio_lengths)
+            batch_score = (batch_out[:, 1]
+                        ).data.cpu().numpy().ravel()
+            # add outputs
+            fname_list.extend(utt_id)
+            score_list.extend(batch_score.tolist())
+            
+            with open(save_path, 'a+') as fh:
+                for f, cm in zip(fname_list,score_list):
+                    fh.write('{} {}\n'.format(f, cm))
+            fh.close()   
+        print('Scores saved to {}'.format(save_path))
 
-def train_epoch(train_loader, model, lr,optim, device):
+def train_epoch(train_loader, model, lr, optim, device):
     running_loss = 0
     num_correct = 0.0
     num_total = 0.0
@@ -147,7 +173,7 @@ def train_epoch(train_loader, model, lr,optim, device):
     weight = torch.FloatTensor([0.1, 0.9]).to(device)
     criterion = nn.CrossEntropyLoss(weight=weight)
     #PHUCDT 
-    for batch_x, batch_bio, bio_lengths, batch_y in train_loader:
+    for batch_x, batch_bio, bio_lengths, batch_y in tqdm(train_loader, ncols=100):
        
         batch_size = batch_x.size(0)
         num_total += batch_size
@@ -177,7 +203,7 @@ def train_epoch(train_loader, model, lr,optim, device):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='ASVspoof2021 baseline system')
     # Dataset
-    parser.add_argument('--database_path', type=str, default='/dataa/Dataset/ASVspoof/LA/', help='Change this to user\'s full directory address of LA database (ASVspoof2019- for training & development (used as validation), ASVspoof2021 for evaluation scores). We assume that all three ASVspoof 2019 LA train, LA dev and ASVspoof2021 LA eval data folders are in the same database_path directory.')
+    parser.add_argument('--database_path', type=str, default='/datab/Dataset/ASVspoof/LA/', help='Change this to user\'s full directory address of LA database (ASVspoof2019- for training & development (used as validation), ASVspoof2021 for evaluation scores). We assume that all three ASVspoof 2019 LA train, LA dev and ASVspoof2021 LA eval data folders are in the same database_path directory.')
     '''
     % database_path/
     %   |- LA
@@ -186,7 +212,7 @@ if __name__ == '__main__':
     %      |- ASVspoof2019_LA_dev/flac
     '''
 
-    parser.add_argument('--protocols_path', type=str, default='/dataa/Dataset/ASVspoof/LA/', help='Change with path to user\'s LA database protocols directory address')
+    parser.add_argument('--protocols_path', type=str, default='/datab/Dataset/ASVspoof/LA/', help='Change with path to user\'s LA database protocols directory address')
     '''
     % protocols_path/
     %   |- ASVspoof_LA_cm_protocols
@@ -201,6 +227,8 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--weight_decay', type=float, default=0.0001)
     parser.add_argument('--loss', type=str, default='weighted_CCE')
+    parser.add_argument('--start_epoch', type=int, default=0)
+    
     # model
     parser.add_argument('--seed', type=int, default=1234, 
                         help='random seed (default: 1234)')
@@ -344,20 +372,42 @@ if __name__ == '__main__':
     dev_loader = DataLoader(dev_set, batch_size=args.batch_size, shuffle=False)
     del dev_set,d_label_dev
 
-    # Training and validation 
+    # # Training and validation 
+    # num_epochs = args.num_epochs
+    # writer = SummaryWriter('logs/{}'.format(model_tag))
+    # best_acc = 99
+    # for epoch in range(num_epochs):
+    #     running_loss, train_accuracy = train_epoch(train_loader,model, args.lr,optimizer, device)
+    #     valid_accuracy = evaluate_accuracy(dev_loader, model, device)
+    #     writer.add_scalar('train_accuracy', train_accuracy, epoch)
+    #     writer.add_scalar('valid_accuracy', valid_accuracy, epoch)
+    #     writer.add_scalar('loss', running_loss, epoch)
+    #     print('\n{} - {} - {:.2f} - {:.2f}'.format(epoch,
+    #                                                running_loss, train_accuracy, valid_accuracy))
+        
+    #     if valid_accuracy > best_acc:
+    #         print('best model find at epoch', epoch)
+    #     best_acc = max(valid_accuracy, best_acc)
+    #     torch.save(model.state_dict(), os.path.join(model_save_path, 'epoch_{}.pth'.format(epoch)))
+
+    # Training and validation
     num_epochs = args.num_epochs
     writer = SummaryWriter('logs/{}'.format(model_tag))
-    best_acc = 99
-    for epoch in range(num_epochs):
+    early_stopping = EarlyStop(patience=20, delta=0.01, init_best=99.0, save_dir=model_save_path)
+    start_train_time = time.time()
+    for epoch in range(args.start_epoch,args.start_epoch + num_epochs, 1):
+        print('Epoch {}/{}. Current LR: {}'.format(epoch, num_epochs - 1, optimizer.param_groups[0]['lr']))
+
         running_loss, train_accuracy = train_epoch(train_loader,model, args.lr,optimizer, device)
-        valid_accuracy = evaluate_accuracy(dev_loader, model, device)
+        val_accuracy = evaluate_accuracy(dev_loader, model, device)
         writer.add_scalar('train_accuracy', train_accuracy, epoch)
-        writer.add_scalar('valid_accuracy', valid_accuracy, epoch)
-        writer.add_scalar('loss', running_loss, epoch)
-        print('\n{} - {} - {:.2f} - {:.2f}'.format(epoch,
-                                                   running_loss, train_accuracy, valid_accuracy))
-        
-        if valid_accuracy > best_acc:
-            print('best model find at epoch', epoch)
-        best_acc = max(valid_accuracy, best_acc)
-        torch.save(model.state_dict(), os.path.join(model_save_path, 'epoch_{}.pth'.format(epoch)))
+        writer.add_scalar('val_accuracy', val_accuracy, epoch)
+        writer.add_scalar('train_loss', running_loss, epoch)
+        print('\n{} - {}\nTraining ACC:{} - Validation ACC: {}'.format(epoch,running_loss, train_accuracy, val_accuracy))
+        # check early stopping
+        early_stopping(val_accuracy, model, epoch)
+        if early_stopping.early_stop:
+            print("Early stopping activated.")
+            break
+
+    print("Total training time: {}s".format(time.time() - start_train_time))
