@@ -267,7 +267,6 @@ class Model(nn.Module):
     def __init__(self, d_args, device):
         super(Model, self).__init__()
         self.device=device
-        self.is_add = d_args['is_add']
         self.backend = backend(d_args, self.device)
         
         # BIO correlation encoding
@@ -279,14 +278,13 @@ class Model(nn.Module):
         elif d_args['bio_enc']['name'] == 'rnn':
             self.bioScoring = bioEncoderRNN(d_args, self.device)
             
-        
         # Concat
         if (self.bio_mode == 'concat'):
-            self.fc2 = nn.Linear(in_features = d_args['nb_fc_node']+d_args['bio_out'],
+            self.fc2 = nn.Linear(in_features =self.backend.out_dim + d_args['bio_out'],
 			                            out_features = d_args['nb_classes'],bias=True)
         
         else:
-            self.fc2 = nn.Linear(in_features = d_args['nb_fc_node'],
+            self.fc2 = nn.Linear(in_features = self.backend.out_dim,
                 out_features = d_args['nb_classes'],bias=True)
         
 

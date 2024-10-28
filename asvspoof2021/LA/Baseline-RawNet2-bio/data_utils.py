@@ -92,7 +92,7 @@ class Dataset_ASVspoof2019_train(Dataset):
             # print(bio_length)
             
         else:
-            bio = wav2bio(X_pad, fs)
+            bio = wav2bio(X_pad, fs, class_weight=[1,1,1], scope=7)
             bio_length = len(bio)
             bio_inp = torch.IntTensor(bio)
             torch.save(bio_inp, feat_name)

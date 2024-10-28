@@ -30,12 +30,16 @@ class EarlyStop:
         self.save_dir = save_dir
 
     def __call__(self, score, model, epoch):
+        # save model every 5 epoch
+        if epoch % 5 == 0:
+            torch.save(model.state_dict(), os.path.join(
+                self.save_dir, 'epoch_{}.pth'.format(epoch)))
         if self.best_score is None:
             self.best_score = score
         elif score < self.best_score + self.delta:
             self.counter += 1
-            if self.counter >= self.patience:
-                self.early_stop = True
+            # if self.counter >= self.patience:
+                # self.early_stop = True
         else:
             print("Best epoch: {}".format(epoch))
             self.best_score = score
@@ -223,7 +227,7 @@ if __name__ == '__main__':
 
     # Hyperparameters
     parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--num_epochs', type=int, default=100)
+    parser.add_argument('--num_epochs', type=int, default=60)
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--weight_decay', type=float, default=0.0001)
     parser.add_argument('--loss', type=str, default='weighted_CCE')
@@ -247,6 +251,8 @@ if __name__ == '__main__':
                         help='eval mode')
     parser.add_argument('--bio_extract', action='store_true', default=False,
                         help='eval mode')
+    parser.add_argument('--tts_only', default=True,
+                        help='Using TTS training set only')
     parser.add_argument('--is_eval', action='store_true', default=False,help='eval database')
     parser.add_argument('--eval_2019', action='store_true', default=False, help='eval on ASVspoof2019 eval set, split follow attack type')
     parser.add_argument('--eval_part', type=int, default=0)
@@ -352,7 +358,7 @@ if __name__ == '__main__':
     
     # define train dataloader
 
-    d_label_trn,file_train = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.train.trn.txt'.format(prefix,prefix_2019)),is_train=True,is_eval=False)
+    d_label_trn,file_train = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.train.trn.txt'.format(prefix,prefix_2019)),is_train=True,is_eval=False, tts_only=args.tts_only)
     print('no. of training trials',len(file_train))
     
     train_set=Dataset_ASVspoof2019_train(list_IDs = file_train,labels = d_label_trn,base_dir = os.path.join(args.database_path+'ASVspoof2019_{}_train/'.format(args.track)))
@@ -363,7 +369,7 @@ if __name__ == '__main__':
 
     # define validation dataloader
 
-    d_label_dev,file_dev = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.dev.trl.txt'.format(prefix,prefix_2019)),is_train=False,is_eval=False)
+    d_label_dev,file_dev = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.dev.trl.txt'.format(prefix,prefix_2019)),is_train=False,is_eval=False, tts_only=args.tts_only)
     print('no. of validation trials',len(file_dev))
 
     dev_set = Dataset_ASVspoof2019_train(list_IDs = file_dev,
@@ -406,8 +412,8 @@ if __name__ == '__main__':
         print('\n{} - {}\nTraining ACC:{} - Validation ACC: {}'.format(epoch,running_loss, train_accuracy, val_accuracy))
         # check early stopping
         early_stopping(val_accuracy, model, epoch)
-        if early_stopping.early_stop:
-            print("Early stopping activated.")
-            break
+        # if early_stopping.early_stop:
+        #     print("Early stopping activated.")
+        #     break
 
     print("Total training time: {}s".format(time.time() - start_train_time))
