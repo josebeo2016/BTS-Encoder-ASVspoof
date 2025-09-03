@@ -8,14 +8,16 @@ from torch import nn
 from torch import Tensor
 from torch.utils.data import DataLoader
 import yaml
-from data_utils import genSpoof_list, genSpoof_list_custom, Dataset_score, Dataset_eval,Dataset_ASVspoof2019_train,Dataset_ASVspoof2021_eval, Dataset_ASVspoof2019_eval
+from data_utils import genSpoof_list,Dataset_ASVspoof2019_train,Dataset_ASVspoof2021_eval, Dataset_ASVspoof2019_eval
 from model import Model
 from tensorboardX import SummaryWriter
 from core_scripts.startup_config import set_random_seed
 from tqdm import tqdm
+import time
 
-__author__ = "PHUCDT"
-__credits__ = ["Jose Patino", "Massimiliano Todisco", "Jee-weon Jung", "Hemlata Tak"]
+__author__ = "Phuc DT"
+__email__ = "phucdt@soongsil.ac.kr"
+__credits__ = ["Jose Patino", "Massimiliano Todisco", "Jee-weon Jung, Hemlata Tak"]
 
 
 class EarlyStop:
@@ -47,7 +49,7 @@ def evaluate_accuracy(dev_loader, model, device):
     num_total = 0.0
     model.eval()
     with torch.no_grad():
-        for batch_x, batch_bio, bio_lengths, batch_y in dev_loader:
+        for batch_x, batch_bio, bio_lengths, batch_y in tqdm(dev_loader, ncols=100):
             
             batch_size = batch_x.size(0)
             num_total += batch_size
@@ -58,19 +60,19 @@ def evaluate_accuracy(dev_loader, model, device):
             batch_out, _ = model(batch_x, batch_bio, bio_lengths)
             _, batch_pred = batch_out.max(dim=1)
             num_correct += (batch_pred == batch_y).sum(dim=0).item()
-    return 100 * (num_correct / num_total)
+        return 100 * (num_correct / num_total)
 
 
 def produce_bio_extract_file_2019(
     dataset,
     model,
     device,
-    save_path):
+    save_path, batch_size=128):
     """Perform evaluation and save the score to a file"""
-    data_loader = DataLoader(dataset, batch_size=8, shuffle=False, drop_last=False)
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
     model.eval()
     with torch.no_grad():
-        for batch_x, batch_bio, bio_lengths, keys in data_loader:
+        for batch_x, batch_bio, bio_lengths, keys in tqdm(data_loader, ncols=100):
             # fname_list = []
             # score_list = []  
             batch_size = batch_x.size(0)
@@ -78,36 +80,49 @@ def produce_bio_extract_file_2019(
             bio_lengths = bio_lengths.to(device)
             batch_bio = batch_bio.to(device)
             _, batch_bio_out = model(batch_x, batch_bio, bio_lengths)
-        
+
+                        
+            # add outputs
+            # fname_list.extend(keys)
+            # score_list.extend(batch_score.tolist())
+            
 
             for fn, sco in zip(keys, batch_bio_out.tolist()):
                 _, utt_id, _, src, key = fn.strip().split(' ')
                 torch.save(sco, save_path + "/" + utt_id)
                 # assert fn == utt_id
             
+
+    # assert len(trial_lines) == len(fname_list) == len(score_list)
+    # with open(save_path, "w") as fh:
+    #     for fn, sco, trl in zip(fname_list, score_list, trial_lines):
+    #         _, utt_id, _, src, key = trl.strip().split(' ')
+    #         assert fn == utt_id
+    #         fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
     print("bio saved to {}".format(save_path))
 
 def produce_evaluation_file_2019(
     dataset,
     model,
     device,
-    batch_size,
-    save_path):
+    save_path, batch_size=128):
     """Perform evaluation and save the score to a file"""
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
     model.eval()
     with torch.no_grad():
-        for batch_x, batch_bio, bio_lengths, keys in data_loader:
+        for batch_x, batch_bio, bio_lengths, keys in tqdm(data_loader, ncols=100):
             # fname_list = []
             # score_list = []  
-            # batch_size = batch_x.size(0)
+            batch_size = batch_x.size(0)
             batch_x = batch_x.to(device)
             bio_lengths = bio_lengths.to(device)
             batch_bio = batch_bio.to(device)
             batch_out, _ = model(batch_x, batch_bio, bio_lengths)
             batch_score = (batch_out[:, 1]
                         ).data.cpu().numpy().ravel()
-
+            # add outputs
+            # fname_list.extend(keys)
+            # score_list.extend(batch_score.tolist())
             
             with open(save_path, "a+") as fh:
                 for fn, sco in zip(keys, batch_score.tolist()):
@@ -115,58 +130,19 @@ def produce_evaluation_file_2019(
                     # assert fn == utt_id
                     fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
             fh.close()
-
+    # assert len(trial_lines) == len(fname_list) == len(score_list)
+    # with open(save_path, "w") as fh:
+    #     for fn, sco, trl in zip(fname_list, score_list, trial_lines):
+    #         _, utt_id, _, src, key = trl.strip().split(' ')
+    #         assert fn == utt_id
+    #         fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
     print("Scores saved to {}".format(save_path))
 
-def produce_emb_file(dataset, model, device, save_path, batch_size=10):
-    data_loader = DataLoader(dataset, batch_size, shuffle=False, drop_last=False)
-    num_correct = 0.0
-    num_total = 0.0
-    model.eval()
-    model.is_train = True
-
-    fname_list = []
-    key_list = []
-    score_list = []
-    
-    for batch_x, batch_bio, bio_lengths, utt_id in tqdm(data_loader):
-        fname_list = []
-        score_list = []  
-        pred_list = []
-        batch_size = batch_x.size(0)
-        
-        batch_x = batch_x.to(device)
-        bio_lengths = bio_lengths.to(device)
-        batch_bio = batch_bio.to(device)
-        batch_out, batch_emb = model(batch_x, batch_bio, bio_lengths)
-        
-        score_list.extend(batch_out.data.cpu().numpy().tolist())
-        # add outputs
-        fname_list.extend(utt_id)
-
-        # save_path now must be a directory
-        # make dir if not exist
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-        # Then each emb should be save in a file with name is utt_id
-        for f, emb in zip(fname_list,batch_emb):
-            # normalize filename
-            f = f.split('/')[-1].split('.')[0] # utt id only
-            save_path_utt = os.path.join(save_path, f)
-            np.save(save_path_utt, emb.data.cpu().numpy())
-        
-        # score file save into a single file
-        with open(os.path.join(save_path, "scores.txt"), 'a+') as fh:
-            for f, cm in zip(fname_list,score_list):
-                fh.write('{} {} {}\n'.format(f, cm[0], cm[1]))
-        fh.close()   
-    print('Scores saved to {}'.format(save_path))
-
-def produce_evaluation_file(dataset, model, device, save_path, batch_size):
+def produce_evaluation_file(dataset, model, device, save_path, batch_size=128):
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
     model.eval()
     with torch.no_grad():
-        for batch_x, batch_bio, bio_lengths, utt_id in tqdm(data_loader):
+        for batch_x, batch_bio, bio_lengths, utt_id in tqdm(data_loader, ncols=100):
             fname_list = []
             score_list = []  
             batch_size = batch_x.size(0)
@@ -178,15 +154,15 @@ def produce_evaluation_file(dataset, model, device, save_path, batch_size):
                         ).data.cpu().numpy().ravel()
             # add outputs
             fname_list.extend(utt_id)
-            score_list.extend(batch_out.data.cpu().numpy().tolist())
+            score_list.extend(batch_score.tolist())
             
             with open(save_path, 'a+') as fh:
                 for f, cm in zip(fname_list,score_list):
-                    fh.write('{} {} {}\n'.format(f, cm[0], cm[1]))
+                    fh.write('{} {}\n'.format(f, cm))
             fh.close()   
         print('Scores saved to {}'.format(save_path))
 
-def train_epoch(train_loader, model, lr,optim, device):
+def train_epoch(train_loader, model, lr, optim, device):
     running_loss = 0
     num_correct = 0.0
     num_total = 0.0
@@ -197,7 +173,7 @@ def train_epoch(train_loader, model, lr,optim, device):
     weight = torch.FloatTensor([0.1, 0.9]).to(device)
     criterion = nn.CrossEntropyLoss(weight=weight)
     #PHUCDT 
-    for batch_x, batch_bio, bio_lengths, batch_y in train_loader:
+    for batch_x, batch_bio, bio_lengths, batch_y in tqdm(train_loader, ncols=100):
        
         batch_size = batch_x.size(0)
         num_total += batch_size
@@ -227,7 +203,7 @@ def train_epoch(train_loader, model, lr,optim, device):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='ASVspoof2021 baseline system')
     # Dataset
-    parser.add_argument('--database_path', type=str, default='/dataa/Dataset/ASVspoof/LA/', help='Change this to user\'s full directory address of LA database (ASVspoof2019- for training & development (used as validation), ASVspoof2021 for evaluation scores). We assume that all three ASVspoof 2019 LA train, LA dev and ASVspoof2021 LA eval data folders are in the same database_path directory.')
+    parser.add_argument('--database_path', type=str, default='/datab/Dataset/ASVspoof/LA/', help='Change this to user\'s full directory address of LA database (ASVspoof2019- for training & development (used as validation), ASVspoof2021 for evaluation scores). We assume that all three ASVspoof 2019 LA train, LA dev and ASVspoof2021 LA eval data folders are in the same database_path directory.')
     '''
     % database_path/
     %   |- LA
@@ -236,7 +212,7 @@ if __name__ == '__main__':
     %      |- ASVspoof2019_LA_dev/flac
     '''
 
-    parser.add_argument('--protocols_path', type=str, default='/dataa/Dataset/ASVspoof/LA/', help='Change with path to user\'s LA database protocols directory address')
+    parser.add_argument('--protocols_path', type=str, default='/datab/Dataset/ASVspoof/LA/', help='Change with path to user\'s LA database protocols directory address')
     '''
     % protocols_path/
     %   |- ASVspoof_LA_cm_protocols
@@ -246,11 +222,13 @@ if __name__ == '__main__':
     '''
 
     # Hyperparameters
-    parser.add_argument('--batch_size', type=int, default=10)
+    parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_epochs', type=int, default=100)
-    parser.add_argument('--lr', type=float, default=0.000001)
+    parser.add_argument('--lr', type=float, default=0.00001)
     parser.add_argument('--weight_decay', type=float, default=0.0001)
     parser.add_argument('--loss', type=str, default='weighted_CCE')
+    parser.add_argument('--start_epoch', type=int, default=0)
+    
     # model
     parser.add_argument('--seed', type=int, default=1234, 
                         help='random seed (default: 1234)')
@@ -267,15 +245,15 @@ if __name__ == '__main__':
                         help='Path to config yaml file')
     parser.add_argument('--eval_2021', action='store_true', default=False,
                         help='eval mode')
-    parser.add_argument('--eval_custom', action='store_true', default=False,
-                        help='eval mode')
     parser.add_argument('--bio_extract', action='store_true', default=False,
                         help='eval mode')
+    parser.add_argument('--use_bio', default=True,
+                        help='Using biological feature')
+    parser.add_argument('--tts_only', default=True,
+                        help='Using TTS training set only')
     parser.add_argument('--is_eval', action='store_true', default=False,help='eval database')
     parser.add_argument('--eval_2019', action='store_true', default=False, help='eval on ASVspoof2019 eval set, split follow attack type')
     parser.add_argument('--eval_part', type=int, default=0)
-    parser.add_argument('--emb', action='store_true', default=False, help='extract emb')
-    parser.add_argument('--score', action='store_true', default=False, help='extract score for dnnfuse')
     # backend options
     parser.add_argument('--cudnn-deterministic-toggle', action='store_false', \
                         default=True, 
@@ -292,9 +270,6 @@ if __name__ == '__main__':
 
     if not os.path.exists('models'):
         os.mkdir('models')
-    
-    if not os.path.exists('feats'):
-        os.mkdir('feats')
     args = parser.parse_args()
     
     # dir_yaml = os.path.splitext('model_config_RawNet')[0] + '.yaml'
@@ -339,24 +314,8 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,weight_decay=args.weight_decay)
     
     if args.model_path:
-        try:
-            model.load_state_dict(torch.load(args.model_path,map_location=device))
-            if torch.cuda.device_count() > 1:
-                model = nn.DataParallel(model)
-        except:
-            print('DataParallel enabled')
-            model = Model(parser1['model'], device)
-            model =(model).to(device)
-            if torch.cuda.device_count() > 1:
-                model = nn.DataParallel(model)
-            model.load_state_dict(torch.load(args.model_path,map_location=device))
-            
+        model.load_state_dict(torch.load(args.model_path,map_location=device))
         print('Model loaded : {}'.format(args.model_path))
-    
-    else:
-        if torch.cuda.device_count() > 1:
-            model = nn.DataParallel(model)
-            print('Model initialized')
         
     # print param
     if args.print_param:
@@ -369,20 +328,10 @@ if __name__ == '__main__':
         sys.exit(0)
 
     if args.bio_extract:
-        print("=================================Start extract bio encoding eval set=======================")
-        # file_eval = genSpoof_list(dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.eval.trl.txt'.format(prefix,prefix_2019)),is_train=False,is_eval=True)
-        # print('no. of eval trials',len(file_eval))
-        # eval_set = Dataset_ASVspoof2019_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path+'ASVspoof2019_{}_eval/'.format(args.track)))
-        # produce_bio_extract_file_2019(eval_set, model, device, args.eval_output)
-        print("=================================Start extract bio encoding train set=======================")
-        file_eval = genSpoof_list(dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.train.trn.txt'.format(prefix,prefix_2019)),is_train=False,is_eval=True)
+        print("==================Start extract bio encoding ======================")
+        file_eval = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.eval.trl.txt'.format(prefix,prefix_2019)),is_train=False,is_eval=True)
         print('no. of eval trials',len(file_eval))
-        eval_set = Dataset_ASVspoof2019_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path+'ASVspoof2019_{}_train/'.format(args.track)))
-        produce_bio_extract_file_2019(eval_set, model, device, args.eval_output)
-        print("=================================Start extract bio encoding dev set=======================")
-        file_eval = genSpoof_list(dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.dev.trl.txt'.format(prefix,prefix_2019)),is_train=False,is_eval=True)
-        print('no. of eval trials',len(file_eval))
-        eval_set = Dataset_ASVspoof2019_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path+'ASVspoof2019_{}_dev/'.format(args.track)))
+        eval_set=Dataset_ASVspoof2019_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path+'ASVspoof2019_{}_eval/'.format(args.track)))
         produce_bio_extract_file_2019(eval_set, model, device, args.eval_output)
         sys.exit(0)
     
@@ -390,45 +339,34 @@ if __name__ == '__main__':
     if args.eval_2021:
         file_eval = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.eval.trl.txt'.format(prefix,prefix_2021)),is_train=False,is_eval=True)
         print('no. of eval trials',len(file_eval))
-        eval_set=Dataset_ASVspoof2021_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path+'/ASVspoof2021_{}_eval/'.format(args.track)))
-        if args.emb:
-            produce_emb_file(eval_set, model, device, args.eval_output,batch_size=args.batch_size)
+        eval_set=Dataset_ASVspoof2021_eval(list_IDs = file_eval,
+            base_dir = os.path.join(args.database_path+'/ASVspoof2021_{}_eval/'.format(args.track)),
+            use_bio=args.use_bio)
         produce_evaluation_file(eval_set, model, device, args.eval_output,batch_size=args.batch_size)
         sys.exit(0)
-    
-    
-    
+
     #PHUCDT
     #evaluation 2019
     if args.eval_2019:
         file_eval = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.eval.trl.txt'.format(prefix,prefix_2019)),is_train=False,is_eval=True)
         print('no. of eval trials',len(file_eval))
-        eval_set=Dataset_ASVspoof2019_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path+'ASVspoof2019_{}_eval/'.format(args.track)))
-        produce_evaluation_file_2019(eval_set, model, device, args.batch_size, args.eval_output)
+        eval_set=Dataset_ASVspoof2019_eval(list_IDs = file_eval,
+            base_dir = os.path.join(args.database_path+'ASVspoof2019_{}_eval/'.format(args.track)),
+            use_bio=args.use_bio)
+        produce_evaluation_file_2019(eval_set, model, device, args.eval_output)
         sys.exit(0)
     
-    if args.score:
-        file_eval = genSpoof_list_custom( dir_meta =  os.path.join(args.database_path,'protocol.txt'))
-        print('no. of trials',len(file_eval))
-        eval_set=Dataset_score(list_IDs = file_eval,base_dir = os.path.join(args.database_path))
-        produce_evaluation_file(eval_set, model, device, args.eval_output,batch_size=args.batch_size)
-        sys.exit(0)
 
-    if args.eval_custom:
-        file_eval = genSpoof_list_custom( dir_meta =  os.path.join(args.database_path,'protocol.txt'))
-        print('no. of eval trials',len(file_eval))
-        eval_set=Dataset_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path))
-        if args.emb:
-            produce_emb_file(eval_set, model, device, args.eval_output,batch_size=args.batch_size)
-        else:
-            produce_evaluation_file(eval_set, model, device, args.eval_output,batch_size=args.batch_size)
-        sys.exit(0)
+    
     # define train dataloader
 
-    d_label_trn,file_train = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.train.trn.txt'.format(prefix,prefix_2019)),is_train=True,is_eval=False)
+    d_label_trn,file_train = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.train.trn.txt'.format(prefix,prefix_2019)),is_train=True,is_eval=False, tts_only=args.tts_only)
     print('no. of training trials',len(file_train))
     
-    train_set=Dataset_ASVspoof2019_train(list_IDs = file_train,labels = d_label_trn,base_dir = os.path.join(args.database_path+'ASVspoof2019_{}_train/'.format(args.track)))
+    train_set=Dataset_ASVspoof2019_train(list_IDs = file_train,
+        labels = d_label_trn,
+        base_dir = os.path.join(args.database_path+'ASVspoof2019_{}_train/'.format(args.track)), 
+        use_bio=args.use_bio)
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True,drop_last = True)
     
     del train_set,d_label_trn
@@ -436,36 +374,52 @@ if __name__ == '__main__':
 
     # define validation dataloader
 
-    d_label_dev,file_dev = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.dev.trl.txt'.format(prefix,prefix_2019)),is_train=False,is_eval=False)
+    d_label_dev,file_dev = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.dev.trl.txt'.format(prefix,prefix_2019)),is_train=False,is_eval=False, tts_only=args.tts_only)
     print('no. of validation trials',len(file_dev))
 
     dev_set = Dataset_ASVspoof2019_train(list_IDs = file_dev,
 		labels = d_label_dev,
-		base_dir = os.path.join(args.database_path+'ASVspoof2019_{}_dev/'.format(args.track)))
+		base_dir = os.path.join(args.database_path+'ASVspoof2019_{}_dev/'.format(args.track)),
+        use_bio=args.use_bio)
     dev_loader = DataLoader(dev_set, batch_size=args.batch_size, shuffle=False)
     del dev_set,d_label_dev
 
-    # Training and validation 
+    # # Training and validation 
+    # num_epochs = args.num_epochs
+    # writer = SummaryWriter('logs/{}'.format(model_tag))
+    # best_acc = 99
+    # for epoch in range(num_epochs):
+    #     running_loss, train_accuracy = train_epoch(train_loader,model, args.lr,optimizer, device)
+    #     valid_accuracy = evaluate_accuracy(dev_loader, model, device)
+    #     writer.add_scalar('train_accuracy', train_accuracy, epoch)
+    #     writer.add_scalar('valid_accuracy', valid_accuracy, epoch)
+    #     writer.add_scalar('loss', running_loss, epoch)
+    #     print('\n{} - {} - {:.2f} - {:.2f}'.format(epoch,
+    #                                                running_loss, train_accuracy, valid_accuracy))
+        
+    #     if valid_accuracy > best_acc:
+    #         print('best model find at epoch', epoch)
+    #     best_acc = max(valid_accuracy, best_acc)
+    #     torch.save(model.state_dict(), os.path.join(model_save_path, 'epoch_{}.pth'.format(epoch)))
+
+    # Training and validation
     num_epochs = args.num_epochs
     writer = SummaryWriter('logs/{}'.format(model_tag))
-    best_acc = 99
-    early_stopping = EarlyStop(patience=10, delta=0, init_best=99, save_dir=model_save_path)
-    for epoch in range(num_epochs):
+    early_stopping = EarlyStop(patience=20, delta=0.01, init_best=99.0, save_dir=model_save_path)
+    start_train_time = time.time()
+    for epoch in range(args.start_epoch,args.start_epoch + num_epochs, 1):
+        print('Epoch {}/{}. Current LR: {}'.format(epoch, num_epochs - 1, optimizer.param_groups[0]['lr']))
+
         running_loss, train_accuracy = train_epoch(train_loader,model, args.lr,optimizer, device)
-        valid_accuracy = evaluate_accuracy(dev_loader, model, device)
+        val_accuracy = evaluate_accuracy(dev_loader, model, device)
         writer.add_scalar('train_accuracy', train_accuracy, epoch)
-        writer.add_scalar('valid_accuracy', valid_accuracy, epoch)
-        writer.add_scalar('loss', running_loss, epoch)
-        print('\n{} - {} - {:.2f} - {:.2f}'.format(epoch,
-                                                   running_loss, train_accuracy, valid_accuracy))
-        
-        
-        early_stopping(valid_accuracy, model, epoch)
+        writer.add_scalar('val_accuracy', val_accuracy, epoch)
+        writer.add_scalar('train_loss', running_loss, epoch)
+        print('\n{} - {}\nTraining ACC:{} - Validation ACC: {}'.format(epoch,running_loss, train_accuracy, val_accuracy))
+        # check early stopping
+        early_stopping(val_accuracy, model, epoch)
         if early_stopping.early_stop:
             print("Early stopping activated.")
-            
             break
-        # if valid_accuracy > best_acc:
-        #     print('best model find at epoch', epoch)
-        # best_acc = max(valid_accuracy, best_acc)
-        # torch.save(model.state_dict(), os.path.join(model_save_path, 'epoch_{}.pth'.format(epoch)))
+
+    print("Total training time: {}s".format(time.time() - start_train_time))

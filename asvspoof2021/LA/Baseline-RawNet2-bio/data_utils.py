@@ -84,7 +84,7 @@ class Dataset_ASVspoof2019_train(Dataset):
  
     def get_Bio(self, filename, X_pad, fs):
         
-        feat_name = "./feats/train_2019/" + filename
+        feat_name = "./feats/train_2019_cnn/" + filename
 
         if os.path.exists(feat_name):
             bio_inp = torch.load(feat_name)
@@ -92,7 +92,7 @@ class Dataset_ASVspoof2019_train(Dataset):
             # print(bio_length)
             
         else:
-            bio = wav2bio(X_pad, fs)
+            bio = wav2bio(X_pad, fs, class_weight=[1,1,1], scope=7)
             bio_length = len(bio)
             bio_inp = torch.IntTensor(bio)
             torch.save(bio_inp, feat_name)
@@ -122,7 +122,7 @@ class Dataset_ASVspoof2021_eval(Dataset):
         return x_inp, bio_inp, bio_length, key
     def get_Bio(self, filename, X_pad, fs):
         
-        feat_name = "./feats/eval_2021/" + filename
+        feat_name = "./feats/eval_2021_cnn/" + filename
 
         if os.path.exists(feat_name):
             bio_inp = torch.load(feat_name)
@@ -160,7 +160,7 @@ class Dataset_ASVspoof2019_eval(Dataset):
     
     def get_Bio(self, filename, X_pad, fs):
         
-        feat_name = "./feats/eval_2019/" + filename
+        feat_name = "./feats/eval_2019_cnn/" + filename
 
         if os.path.exists(feat_name):
             bio_inp = torch.load(feat_name)

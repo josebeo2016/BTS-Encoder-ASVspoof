@@ -17,14 +17,17 @@ model:
   # Biological conditioning
   n_bios: 3
   bio_dim: 32
-  # bioEncoderRNN
+  # bioEncoder
   bio_rnn: 64
   bio_out: 32
-  # bioEncoderCONV
+  # Convolutional (if used)
   bio_hid: 256
   n_heads: 4
   pf_dim: 128
   n_layers: 3
+  bio_enc:
+    mode: 'concat' # or 'add'
+    name: 'transformer'
 
 
   

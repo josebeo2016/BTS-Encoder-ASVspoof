@@ -16,15 +16,20 @@ model:
   nb_classes: 2
   # Biological conditioning
   n_bios: 3
-  bio_dim: 32
+  bio_dim: 64
   # bioEncoderRNN
   bio_rnn: 64
-  bio_out: 1024
-  # bioEncoderCONV
+  bio_out: 32
+  # Convolutional (if used)
   bio_hid: 256
   n_heads: 4
   pf_dim: 128
   n_layers: 3
+  bio_enc:
+    mode: 'concat' # or 'add'
+    name: 'cnns2s'
+  
+
 
 
   
